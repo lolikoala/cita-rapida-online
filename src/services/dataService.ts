@@ -176,7 +176,14 @@ export const getAppointments = async (): Promise<Appointment[]> => {
   
   // Map the nested service object to match our expected type
   return (data || []).map(appointment => ({
-    ...appointment,
+    id: appointment.id,
+    service_id: appointment.service_id,
+    name: appointment.name,
+    phone: appointment.phone,
+    date: appointment.date,
+    time: appointment.time,
+    status: appointment.status as 'pending' | 'accepted' | 'rejected',
+    created_at: appointment.created_at,
     service: appointment.service ? {
       id: appointment.service_id,
       name: appointment.service.name,
@@ -204,7 +211,14 @@ export const getAppointmentById = async (id: string): Promise<Appointment | unde
   
   // Map the nested service object to match our expected type
   return data ? {
-    ...data,
+    id: data.id,
+    service_id: data.service_id,
+    name: data.name,
+    phone: data.phone,
+    date: data.date,
+    time: data.time,
+    status: data.status as 'pending' | 'accepted' | 'rejected',
+    created_at: data.created_at,
     service: data.service ? {
       id: data.service_id,
       name: data.service.name,
@@ -230,7 +244,14 @@ export const getAppointmentsByPhone = async (phone: string): Promise<Appointment
   
   // Map the nested service object to match our expected type
   return (data || []).map(appointment => ({
-    ...appointment,
+    id: appointment.id,
+    service_id: appointment.service_id,
+    name: appointment.name,
+    phone: appointment.phone,
+    date: appointment.date,
+    time: appointment.time,
+    status: appointment.status as 'pending' | 'accepted' | 'rejected',
+    created_at: appointment.created_at,
     service: appointment.service ? {
       id: appointment.service_id,
       name: appointment.service.name,
@@ -334,7 +355,8 @@ export const getAvailableTimeSlots = async (date: string, serviceId: string): Pr
       const isBooked = dateAppointments.some(
         (appointment) => {
           // Convert appointment time to Date for comparison
-          const appointmentStart = parse(appointment.time, "HH:mm:ss", new Date());
+          const appointmentTime = appointment.time || "";
+          const appointmentStart = parse(appointmentTime, "HH:mm:ss", new Date());
           const appointmentEnd = addMinutes(
             appointmentStart, 
             appointment.service?.duration_minutes || 30
