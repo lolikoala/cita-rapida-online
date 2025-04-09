@@ -2,15 +2,17 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, ArrowRight, Clock } from "lucide-react";
+import { CalendarDays, ArrowRight, Clock, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getServices } from "@/services/dataService";
 import { Service } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Home = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -51,6 +53,12 @@ const Home = () => {
             <Clock className="h-5 w-5" />
             Consultar Cita
           </Button>
+          {!isAuthenticated && (
+            <Button variant="secondary" size="lg" onClick={() => navigate("/login")} className="gap-2">
+              <UserPlus className="h-5 w-5" />
+              Área de Administrador
+            </Button>
+          )}
         </div>
       </section>
 
@@ -81,6 +89,13 @@ const Home = () => {
                 </CardContent>
               </Card>
             ))}
+            {services.length === 0 && !isLoading && (
+              <div className="col-span-full text-center py-8">
+                <p className="text-muted-foreground">
+                  No hay servicios disponibles actualmente.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </section>

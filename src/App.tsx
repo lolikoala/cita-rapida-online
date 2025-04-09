@@ -14,6 +14,7 @@ import Home from "@/pages/Home";
 import BookAppointment from "@/pages/BookAppointment";
 import CheckAppointment from "@/pages/CheckAppointment";
 import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import NotFound from "@/pages/NotFound";
 
 // Admin pages
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/book" element={<BookAppointment />} />
               <Route path="/check" element={<CheckAppointment />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
             </Route>
             
             {/* Admin Routes */}
