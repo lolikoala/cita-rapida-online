@@ -300,7 +300,7 @@ export const updateAppointmentStatus = async (id: string, status: "pending" | "a
 // Time Slots
 export const getAvailableTimeSlots = async (date: string, serviceId: string): Promise<TimeSlot[]> => {
   // Get day of week for the selected date (0 = Sunday, 1 = Monday, etc.)
-  const dayOfWeek = (new Date(date).getDay() + 6) % 7;
+  const dayOfWeek = new Date(date).getDay();
   
   // Get business hours for the selected day
   const { data: dayHours, error: hoursError } = await supabase
