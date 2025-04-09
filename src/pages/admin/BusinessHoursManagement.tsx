@@ -160,14 +160,15 @@ const BusinessHoursManagement = () => {
   };
 
   const dayOptions = [
-  { value: "0", label: "Lunes" },
-  { value: "1", label: "Martes" },
-  { value: "2", label: "Miércoles" },
-  { value: "3", label: "Jueves" },
-  { value: "4", label: "Viernes" },
-  { value: "5", label: "Sábado" },
-  { value: "6", label: "Domingo" },
+  { value: "1", label: "Lunes" },
+  { value: "2", label: "Martes" },
+  { value: "3", label: "Miércoles" },
+  { value: "4", label: "Jueves" },
+  { value: "5", label: "Viernes" },
+  { value: "6", label: "Sábado" },
+  { value: "0", label: "Domingo" },
 ];
+
 
   return (
     <div className="space-y-8">
