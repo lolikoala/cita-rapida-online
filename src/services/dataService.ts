@@ -3,6 +3,41 @@ import { Appointment, BusinessHour, Service, TimeSlot } from "@/types";
 import { format, addMinutes, parse, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
+
+type DbService = Database['public']['Tables']['services']['Row'];
+type DbBusinessHour = Database['public']['Tables']['business_hours']['Row'];
+type DbAppointment = Database['public']['Tables']['appointments']['Row'];
+
+// Helper function to convert from database service to app service
+const mapDbServiceToService = (dbService: DbService): Service => ({
+  id: dbService.id,
+  name: dbService.name,
+  duration_minutes: dbService.duration_minutes,
+  price: dbService.price || undefined,
+  created_at: dbService.created_at
+});
+
+// Helper function to convert from database business hour to app business hour
+const mapDbBusinessHourToBusinessHour = (dbBusinessHour: DbBusinessHour): BusinessHour => ({
+  id: dbBusinessHour.id,
+  day_of_week: dbBusinessHour.day_of_week,
+  start_time: dbBusinessHour.start_time,
+  end_time: dbBusinessHour.end_time
+});
+
+// Helper function to convert from database appointment to app appointment
+const mapDbAppointmentToAppointment = (dbAppointment: DbAppointment, service?: Service): Appointment => ({
+  id: dbAppointment.id,
+  service_id: dbAppointment.service_id,
+  name: dbAppointment.name,
+  phone: dbAppointment.phone,
+  date: dbAppointment.date,
+  time: dbAppointment.time,
+  status: dbAppointment.status as 'pending' | 'accepted' | 'rejected',
+  created_at: dbAppointment.created_at,
+  service
+});
 
 // Services
 export const getServices = async (): Promise<Service[]> => {
@@ -16,7 +51,7 @@ export const getServices = async (): Promise<Service[]> => {
     throw error;
   }
   
-  return data || [];
+  return (data || []).map(mapDbServiceToService);
 };
 
 export const getServiceById = async (id: string): Promise<Service | undefined> => {
@@ -34,7 +69,7 @@ export const getServiceById = async (id: string): Promise<Service | undefined> =
     throw error;
   }
   
-  return data;
+  return mapDbServiceToService(data);
 };
 
 export const createService = async (service: Omit<Service, "id" | "created_at">): Promise<Service> => {
@@ -49,7 +84,7 @@ export const createService = async (service: Omit<Service, "id" | "created_at">)
     throw error;
   }
   
-  return data;
+  return mapDbServiceToService(data);
 };
 
 export const updateService = async (id: string, service: Partial<Service>): Promise<Service | undefined> => {
@@ -65,7 +100,7 @@ export const updateService = async (id: string, service: Partial<Service>): Prom
     throw error;
   }
   
-  return data;
+  return mapDbServiceToService(data);
 };
 
 export const deleteService = async (id: string): Promise<boolean> => {
@@ -95,7 +130,7 @@ export const getBusinessHours = async (): Promise<BusinessHour[]> => {
     throw error;
   }
   
-  return data || [];
+  return (data || []).map(mapDbBusinessHourToBusinessHour);
 };
 
 export const getBusinessHourById = async (id: string): Promise<BusinessHour | undefined> => {
@@ -113,7 +148,7 @@ export const getBusinessHourById = async (id: string): Promise<BusinessHour | un
     throw error;
   }
   
-  return data;
+  return mapDbBusinessHourToBusinessHour(data);
 };
 
 export const createBusinessHour = async (hour: Omit<BusinessHour, "id">): Promise<BusinessHour> => {
@@ -128,7 +163,7 @@ export const createBusinessHour = async (hour: Omit<BusinessHour, "id">): Promis
     throw error;
   }
   
-  return data;
+  return mapDbBusinessHourToBusinessHour(data);
 };
 
 export const updateBusinessHour = async (id: string, hour: Partial<BusinessHour>): Promise<BusinessHour | undefined> => {
@@ -144,7 +179,7 @@ export const updateBusinessHour = async (id: string, hour: Partial<BusinessHour>
     throw error;
   }
   
-  return data;
+  return mapDbBusinessHourToBusinessHour(data);
 };
 
 export const deleteBusinessHour = async (id: string): Promise<boolean> => {
@@ -175,23 +210,17 @@ export const getAppointments = async (): Promise<Appointment[]> => {
   }
   
   // Map the nested service object to match our expected type
-  return (data || []).map(appointment => ({
-    id: appointment.id,
-    service_id: appointment.service_id,
-    name: appointment.name,
-    phone: appointment.phone,
-    date: appointment.date,
-    time: appointment.time,
-    status: appointment.status as 'pending' | 'accepted' | 'rejected',
-    created_at: appointment.created_at,
-    service: appointment.service ? {
+  return (data || []).map(appointment => {
+    const service = appointment.service ? {
       id: appointment.service_id,
       name: appointment.service.name,
       duration_minutes: appointment.service.duration_minutes,
-      price: appointment.service.price,
-      created_at: '',  // This field isn't used in the UI for the nested service
-    } : undefined
-  }));
+      price: appointment.service.price || undefined,
+      created_at: '' // This field isn't used in the UI for the nested service
+    } : undefined;
+    
+    return mapDbAppointmentToAppointment(appointment, service);
+  });
 };
 
 export const getAppointmentById = async (id: string): Promise<Appointment | undefined> => {
@@ -210,23 +239,15 @@ export const getAppointmentById = async (id: string): Promise<Appointment | unde
   }
   
   // Map the nested service object to match our expected type
-  return data ? {
-    id: data.id,
-    service_id: data.service_id,
-    name: data.name,
-    phone: data.phone,
-    date: data.date,
-    time: data.time,
-    status: data.status as 'pending' | 'accepted' | 'rejected',
-    created_at: data.created_at,
-    service: data.service ? {
-      id: data.service_id,
-      name: data.service.name,
-      duration_minutes: data.service.duration_minutes,
-      price: data.service.price,
-      created_at: '',  // This field isn't used in the UI for the nested service
-    } : undefined
+  const service = data.service ? {
+    id: data.service_id,
+    name: data.service.name,
+    duration_minutes: data.service.duration_minutes,
+    price: data.service.price || undefined,
+    created_at: '' // This field isn't used in the UI for the nested service
   } : undefined;
+  
+  return mapDbAppointmentToAppointment(data, service);
 };
 
 export const getAppointmentsByPhone = async (phone: string): Promise<Appointment[]> => {
@@ -243,23 +264,17 @@ export const getAppointmentsByPhone = async (phone: string): Promise<Appointment
   }
   
   // Map the nested service object to match our expected type
-  return (data || []).map(appointment => ({
-    id: appointment.id,
-    service_id: appointment.service_id,
-    name: appointment.name,
-    phone: appointment.phone,
-    date: appointment.date,
-    time: appointment.time,
-    status: appointment.status as 'pending' | 'accepted' | 'rejected',
-    created_at: appointment.created_at,
-    service: appointment.service ? {
+  return (data || []).map(appointment => {
+    const service = appointment.service ? {
       id: appointment.service_id,
       name: appointment.service.name,
       duration_minutes: appointment.service.duration_minutes,
-      price: appointment.service.price,
-      created_at: '',  // This field isn't used in the UI for the nested service
-    } : undefined
-  }));
+      price: appointment.service.price || undefined,
+      created_at: '' // This field isn't used in the UI for the nested service
+    } : undefined;
+    
+    return mapDbAppointmentToAppointment(appointment, service);
+  });
 };
 
 export const createAppointment = async (appointment: Omit<Appointment, "id" | "created_at" | "status">): Promise<Appointment> => {
@@ -358,7 +373,7 @@ export const getAvailableTimeSlots = async (date: string, serviceId: string): Pr
       const slotTime = format(currentSlot, "HH:mm");
       
       // Check if the slot is available (not booked)
-      const isBooked = dateAppointments.some(
+      const isBooked = (dateAppointments || []).some(
         (appointment) => {
           // Convert appointment time to Date for comparison
           const appointmentTime = appointment.time || "";
