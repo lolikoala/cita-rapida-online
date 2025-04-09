@@ -25,6 +25,7 @@ const BookAppointment = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
   
+  const [maxMonthsAhead, setMaxMonthsAhead] = useState<number>(3);
   const [sameDayPolicy, setSameDayPolicy] = useState<"same_day" | "next_day" | "next_week">("same_day");
 
   useEffect(() => {
