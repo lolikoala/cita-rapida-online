@@ -401,9 +401,10 @@ export const getAvailableTimeSlots = async (date: string, serviceId: string): Pr
 
 // Helper function to get day name
 export const getDayName = (dayNumber: number): string => {
-  const date = new Date(2023, 0, dayNumber + 2); // Enero 2 de 2023 fue lunes
+  const date = new Date(2023, 0, dayNumber + 1); // 0 (domingo) → lunes
   return format(date, "EEEE", { locale: es });
 };
+
 
 
 export const createAppointment = async (
