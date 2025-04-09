@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { format, isAfter, addDays, isSameDay } from "date-fns";
+import { format, isAfter, addDays, isSameDay, isToday } from "date-fns";
 import { es } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase"; // Import Supabase
+import { supabase } from "@/lib/supabase";
 
 import { getServices, getServiceById, getBusinessHours, getAvailableTimeSlots, createAppointment } from "@/services/dataService";
 import { Service, TimeSlot } from "@/types";
@@ -24,8 +23,12 @@ const BookAppointment = () => {
   const [selectedServiceId, setSelectedServiceId] = useState<string>(preSelectedServiceId || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
-  
   const [sameDayPolicy, setSameDayPolicy] = useState<"same_day" | "next_day" | "next_week">("same_day");
+  const [selectedTime, setSelectedTime] = useState<string>("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [availableDates, setAvailableDates] = useState<Date[]>([]);
 
   useEffect(() => {
     const fetchPolicy = async () => {
@@ -42,13 +45,6 @@ const BookAppointment = () => {
     fetchPolicy();
   }, []);
 
-  const [selectedTime, setSelectedTime] = useState<string>("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [availableDates, setAvailableDates] = useState<Date[]>([]);
-
-  // Fetch services
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -62,27 +58,21 @@ const BookAppointment = () => {
     fetchServices();
   }, []);
 
-  // Fetch available days based on business hours
   useEffect(() => {
     const fetchAvailableDays = async () => {
       try {
         const businessHours = await getBusinessHours();
-        
-        // Create an array of days of the week that have business hours (0-6)
         const availableDaysOfWeek = [...new Set(businessHours.map(hour => hour.day_of_week))];
-        
-        // Generate dates for the next 30 days that match available days of the week
         const today = new Date();
         const dates: Date[] = [];
-        
+
         for (let i = 0; i < 30; i++) {
           const date = addDays(today, i);
-          // Check if this day of the week has business hours
           if (availableDaysOfWeek.includes(date.getDay())) {
             dates.push(date);
           }
         }
-        
+
         setAvailableDates(dates);
       } catch (error) {
         console.error("Error fetching available days:", error);
@@ -92,15 +82,27 @@ const BookAppointment = () => {
     fetchAvailableDays();
   }, []);
 
-  // Fetch available time slots when date and service are selected
   useEffect(() => {
     const fetchTimeSlots = async () => {
       if (selectedServiceId && selectedDate) {
         try {
           const formattedDate = format(selectedDate, "yyyy-MM-dd");
           const slots = await getAvailableTimeSlots(formattedDate, selectedServiceId);
-          setAvailableTimeSlots(slots);
-          setSelectedTime(""); // Reset selected time when date or service changes
+
+          const now = new Date();
+          let filteredSlots = slots;
+
+          if (isToday(selectedDate)) {
+            filteredSlots = slots.filter((slot) => {
+              const [hour, minute] = slot.time.split(":").map(Number);
+              const slotDate = new Date(selectedDate);
+              slotDate.setHours(hour, minute, 0, 0);
+              return slotDate > now;
+            });
+          }
+
+          setAvailableTimeSlots(filteredSlots);
+          setSelectedTime("");
         } catch (error) {
           console.error("Error fetching time slots:", error);
           setAvailableTimeSlots([]);
@@ -113,34 +115,27 @@ const BookAppointment = () => {
     fetchTimeSlots();
   }, [selectedDate, selectedServiceId]);
 
-  
   const getMinDate = () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // eliminar la hora
-
-  if (sameDayPolicy === "next_day") {
-    today.setDate(today.getDate() + 1);
-  } else if (sameDayPolicy === "next_week") {
-    today.setDate(today.getDate() + 7);
-  }
-
-  return today;
-};
-
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (sameDayPolicy === "next_day") today.setDate(today.getDate() + 1);
+    else if (sameDayPolicy === "next_week") today.setDate(today.getDate() + 7);
+    return today;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedServiceId || !selectedDate || !selectedTime || !name || !phone) {
       toast.error("Por favor, completa todos los campos");
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       const formattedDate = format(selectedDate, "yyyy-MM-dd");
-      
+
       await createAppointment({
         service_id: selectedServiceId,
         name,
@@ -148,7 +143,7 @@ const BookAppointment = () => {
         date: formattedDate,
         time: selectedTime,
       });
-      
+
       toast.success("¡Cita solicitada con éxito! Recibirás confirmación pronto.");
       navigate(`/check?phone=${phone}`);
     } catch (error) {
@@ -159,7 +154,6 @@ const BookAppointment = () => {
     }
   };
 
-  // Helper function to check if a date is in the available dates list
   const isDateAvailable = (date: Date) => {
     return availableDates.some(availableDate => isSameDay(availableDate, date));
   };
@@ -167,7 +161,7 @@ const BookAppointment = () => {
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Reservar Cita</h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Step 1: Select Service */}
         <div className="space-y-4">
@@ -203,11 +197,7 @@ const BookAppointment = () => {
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={(date) => 
-  date < getMinDate() || 
-  !isDateAvailable(date)
-}
-
+                disabled={(date) => date < getMinDate() || !isDateAvailable(date)}
                 className="mx-auto"
                 locale={es}
                 modifiersClassNames={{
@@ -218,7 +208,7 @@ const BookAppointment = () => {
             </div>
           </div>
         )}
-        
+
         {/* Step 3: Select Time */}
         {selectedDate && (
           <div className="space-y-4">
@@ -226,7 +216,7 @@ const BookAppointment = () => {
             <p className="text-muted-foreground">
               {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
             </p>
-            
+
             {availableTimeSlots.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {availableTimeSlots.map((slot) => (
