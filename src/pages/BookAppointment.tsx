@@ -197,9 +197,10 @@ const BookAppointment = () => {
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 disabled={(date) => 
-                  isAfter(new Date(), date) || 
-                  !isDateAvailable(date)
-                }
+  date < getMinDate() || 
+  !isDateAvailable(date)
+}
+
                 className="mx-auto"
                 locale={es}
                 modifiersClassNames={{
