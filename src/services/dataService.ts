@@ -336,20 +336,54 @@ export const getAvailableTimeSlots = async (
   const isDayBlocked = blockedSlots.some((b) => !b.start_time && !b.end_time);
   if (isDayBlocked) return [];
 
+  export const getAvailableTimeSlots = async (
+  date: string,
+  serviceId: string
+): Promise<TimeSlot[]> => {
+  const [hoursRes, appointmentsRes, blockedRes] = await Promise.all([
+    supabase.from("business_hours").select("*"),
+    supabase
+      .from("appointments")
+      .select("*")
+      .eq("date", date)
+      .eq("status", "accepted"),
+    supabase
+      .from("blocked_slots")
+      .select("*")
+      .eq("date", date)
+  ]);
+
+  const businessHours = hoursRes.data || [];
+  const appointments = appointmentsRes.data || [];
+  const blockedSlots = blockedRes.data || [];
+
+  const dayOfWeek = new Date(date).getDay();
+  const todayHours = businessHours.filter((h) => h.day_of_week === dayOfWeek);
+
+  if (todayHours.length === 0) return [];
+
+  const serviceRes = await supabase
+    .from("services")
+    .select("duration_minutes")
+    .eq("id", serviceId)
+    .single();
+
+  const duration = serviceRes.data?.duration_minutes || 30;
+
+  const isDayBlocked = blockedSlots.some((b) => !b.start_time && !b.end_time);
+  if (isDayBlocked) return [];
+
   const generateTimeSlots = () => {
     const slots: TimeSlot[] = [];
 
     for (const block of todayHours) {
-      const [startHour, startMin] = block.start_time.split(":").map(Number);
-      const [endHour, endMin] = block.end_time.split(":").map(Number);
-
       const start = new Date(`${date}T${block.start_time}`);
       const end = new Date(`${date}T${block.end_time}`);
 
       for (
         let time = new Date(start);
         time <= new Date(end.getTime() - duration * 60000);
-        time.setMinutes(time.getMinutes() + duration)
+        time.setMinutes(time.getMinutes() + 15) // ← Siempre intervalos de 15 minutos
       ) {
         const timeString = time.toTimeString().slice(0, 5);
 
@@ -371,6 +405,7 @@ export const getAvailableTimeSlots = async (
 
   return generateTimeSlots();
 };
+
 
 export const getAppointmentsWithService = async (date: string) => {
   const { data, error } = await supabase
