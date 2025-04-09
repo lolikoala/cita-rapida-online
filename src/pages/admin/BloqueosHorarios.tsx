@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { es } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
+
+interface BlockedSlot {
+  id: string;
+  date: string;
+  start_time: string | null;
+  end_time: string | null;
+}
 
 const BloqueosHorarios = () => {
   const [date, setDate] = useState<Date | undefined>();
@@ -15,6 +24,24 @@ const BloqueosHorarios = () => {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [loading, setLoading] = useState(false);
+  const [bloqueos, setBloqueos] = useState<BlockedSlot[]>([]);
+
+  const fetchBloqueos = async () => {
+    const { data, error } = await supabase
+      .from("blocked_slots")
+      .select("*")
+      .order("date", { ascending: true });
+
+    if (error) {
+      toast.error("Error al cargar bloqueos");
+    } else {
+      setBloqueos(data || []);
+    }
+  };
+
+  useEffect(() => {
+    fetchBloqueos();
+  }, []);
 
   const handleSave = async () => {
     if (!date) {
@@ -38,12 +65,24 @@ const BloqueosHorarios = () => {
 
     if (error) {
       toast.error("Error al guardar el bloqueo");
-      console.error(error);
     } else {
-      toast.success("Bloqueo registrado con éxito");
+      toast.success("Bloqueo registrado");
+      setDate(undefined);
       setStartTime("");
       setEndTime("");
-      setDate(undefined);
+      setBlockAllDay(true);
+      fetchBloqueos(); // recargar
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("blocked_slots").delete().eq("id", id);
+
+    if (error) {
+      toast.error("No se pudo eliminar");
+    } else {
+      toast.success("Bloqueo eliminado");
+      setBloqueos((prev) => prev.filter((b) => b.id !== id));
     }
   };
 
@@ -101,6 +140,43 @@ const BloqueosHorarios = () => {
               {loading ? "Guardando..." : "Guardar bloqueo"}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Listado de bloqueos */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Bloqueos existentes</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {bloqueos.length === 0 ? (
+            <p className="text-muted-foreground">No hay bloqueos registrados</p>
+          ) : (
+            bloqueos.map((b) => (
+              <div
+                key={b.id}
+                className="flex justify-between items-center border rounded-md p-3 bg-muted"
+              >
+                <div>
+                  <p className="font-medium">
+                    {format(parseISO(b.date), "EEEE d 'de' MMMM", { locale: es })}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {b.start_time && b.end_time
+                      ? `Bloqueado de ${b.start_time} a ${b.end_time}`
+                      : "Bloqueo de día completo"}
+                  </p>
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => handleDelete(b.id)}
+                >
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
     </div>
