@@ -100,6 +100,7 @@ const BloqueosHorarios = () => {
               selected={date}
               onSelect={setDate}
               className="mt-2"
+              locale={{ ...es, options: { ...es.options, weekStartsOn: 1 } }}
             />
           </div>
 
