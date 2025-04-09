@@ -279,7 +279,10 @@ export const createAppointment = async (appointment: Omit<Appointment, "id" | "c
     throw error;
   }
   
-  return data;
+  return {
+    ...data,
+    status: data.status as 'pending' | 'accepted' | 'rejected'
+  };
 };
 
 export const updateAppointmentStatus = async (id: string, status: "pending" | "accepted" | "rejected"): Promise<Appointment | undefined> => {
@@ -295,7 +298,10 @@ export const updateAppointmentStatus = async (id: string, status: "pending" | "a
     throw error;
   }
   
-  return data;
+  return {
+    ...data,
+    status: data.status as 'pending' | 'accepted' | 'rejected'
+  };
 };
 
 // Time Slots
