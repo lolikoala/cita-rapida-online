@@ -372,82 +372,21 @@ export const getAvailableTimeSlots = async (
   return generateTimeSlots();
 };
 
-
-  // Get all appointments for the selected date to check availability
-  const { data: dateAppointments, error: appointmentsError } = await supabase
+export const getAppointmentsWithService = async (date: string) => {
+  const { data, error } = await supabase
     .from('appointments')
     .select('*, service:service_id(duration_minutes)')
     .eq('date', date)
     .neq('status', 'rejected'); // Exclude rejected appointments
-  
-  if (appointmentsError) {
-    console.error("Error fetching appointments:", appointmentsError);
-    throw appointmentsError;
+
+  if (error) {
+    console.error("Error fetching appointments with services:", error);
+    return [];
   }
 
-  const allTimeSlots: TimeSlot[] = [];
-  
-  // Generate time slots for each business hour block
-  for (const hourBlock of dayHours) {
-    const { start_time, end_time } = hourBlock;
-    
-    // Parse start and end times
-    const startTime = parse(start_time, "HH:mm:ss", new Date());
-    const endTime = parse(end_time, "HH:mm:ss", new Date());
-    
-    // Generate slots in 15-minute intervals
-    let currentSlot = startTime;
-    while (addMinutes(currentSlot, service.duration_minutes) <= endTime) {
-      const slotTime = format(currentSlot, "HH:mm");
-      
-      // Check if the slot is available (not booked)
-      const isBooked = (dateAppointments || []).some(
-        (appointment) => {
-          // Convert appointment time to Date for comparison
-          const appointmentTime = appointment.time || "";
-          const appointmentStart = parse(appointmentTime, "HH:mm:ss", new Date());
-          const appointmentEnd = addMinutes(
-            appointmentStart, 
-            appointment.service?.duration_minutes || 30
-          );
-          
-          // Convert current slot time to Date for comparison
-          const slotStart = parse(slotTime, "HH:mm", new Date());
-          const slotEnd = addMinutes(slotStart, service.duration_minutes);
-          
-          // Check if the slots overlap
-          return (
-            isWithinInterval(slotStart, { start: appointmentStart, end: appointmentEnd }) ||
-            isWithinInterval(slotEnd, { start: appointmentStart, end: appointmentEnd }) ||
-            isWithinInterval(appointmentStart, { start: slotStart, end: slotEnd })
-          );
-        }
-      );
-      
-      allTimeSlots.push({
-        time: slotTime,
-        available: !isBooked,
-      });
-      
-      // Move to next 15-minute slot
-      currentSlot = addMinutes(currentSlot, 15);
-    }
-  }
-  
-  const today = new Date().toDateString();
-  if (new Date(date).toDateString() === today) {
-    const now = new Date();
-    now.setSeconds(0, 0);
-    return allTimeSlots.filter((slot) => {
-      const [h, m] = slot.time.split(":").map(Number);
-      const slotDate = new Date();
-      slotDate.setHours(h, m, 0, 0);
-      return slotDate >= now;
-    });
-  }
-
-  return allTimeSlots;
+  return data;
 };
+
 
 // Helper function to get day name
 export const getDayName = (dayNumber: number): string => {
