@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase"; // Import Supabase
+
 import { getServices, getServiceById, getBusinessHours, getAvailableTimeSlots, createAppointment } from "@/services/dataService";
 import { Service, TimeSlot } from "@/types";
 
@@ -22,6 +24,24 @@ const BookAppointment = () => {
   const [selectedServiceId, setSelectedServiceId] = useState<string>(preSelectedServiceId || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
+  
+  const [sameDayPolicy, setSameDayPolicy] = useState<"same_day" | "next_day" | "next_week">("same_day");
+
+  useEffect(() => {
+    const fetchPolicy = async () => {
+      const { data } = await supabase
+        .from("booking_settings")
+        .select("same_day_policy")
+        .single();
+
+      if (data?.same_day_policy) {
+        setSameDayPolicy(data.same_day_policy);
+      }
+    };
+
+    fetchPolicy();
+  }, []);
+
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -92,6 +112,14 @@ const BookAppointment = () => {
 
     fetchTimeSlots();
   }, [selectedDate, selectedServiceId]);
+
+  
+  const getMinDate = () => {
+    const today = new Date();
+    if (sameDayPolicy === "next_day") return new Date(today.setDate(today.getDate() + 1));
+    if (sameDayPolicy === "next_week") return new Date(today.setDate(today.getDate() + 7));
+    return today;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
