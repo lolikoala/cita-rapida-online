@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { CheckIcon, XIcon } from "lucide-react";
+import { CheckIcon, XIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -27,16 +26,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { getAppointments, getServices, updateAppointmentStatus } from "@/services/dataService";
+import {
+  getAppointments,
+  getServices,
+  updateAppointmentStatus,
+  createAppointment,
+  deleteAppointments,
+} from "@/services/dataService";
 import { Appointment, Service } from "@/types";
 
 const AppointmentsManagement = () => {
@@ -44,6 +50,14 @@ const AppointmentsManagement = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
+  const [newAppointment, setNewAppointment] = useState({
+    name: "",
+    phone: "",
+    date: "",
+    time: "",
+    service_id: "",
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -52,23 +66,18 @@ const AppointmentsManagement = () => {
           getAppointments(),
           getServices(),
         ]);
-        
-        // Sort appointments by date (newest first)
+
         const sortedAppointments = appointmentsData.sort((a, b) => {
-          // First by date (newest first)
           const dateComparison = new Date(b.date).getTime() - new Date(a.date).getTime();
           if (dateComparison !== 0) return dateComparison;
-          
-          // Then by time
           return a.time.localeCompare(b.time);
         });
-        
-        // Add service details to appointments
+
         const appointmentsWithService = sortedAppointments.map(appointment => {
           const service = servicesData.find(s => s.id === appointment.service_id);
           return { ...appointment, service };
         });
-        
+
         setAppointments(appointmentsWithService);
         setServices(servicesData);
       } catch (error) {
@@ -78,29 +87,64 @@ const AppointmentsManagement = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
-  
+
   const handleUpdateStatus = async (id: string, status: "accepted" | "rejected") => {
     try {
       await updateAppointmentStatus(id, status);
-      
-      // Update the local state
-      setAppointments(prevAppointments => 
-        prevAppointments.map(appointment => 
-          appointment.id === id ? { ...appointment, status } : appointment
-        )
+      setAppointments(prev =>
+        prev.map(a => a.id === id ? { ...a, status } : a)
       );
-      
       toast.success(`Cita ${status === "accepted" ? "aceptada" : "rechazada"} con éxito`);
     } catch (error) {
-      console.error("Error updating appointment status:", error);
-      toast.error("Error al actualizar el estado de la cita");
+      console.error("Error updating status:", error);
+      toast.error("Error al actualizar la cita");
     }
   };
-  
-  // Get the status badge
+
+  const handleSelect = (id: string) => {
+    setSelectedAppointments(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    const allIds = filteredAppointments.map(a => a.id);
+    const allSelected = allIds.every(id => selectedAppointments.includes(id));
+    setSelectedAppointments(allSelected ? [] : allIds);
+  };
+
+  const handleDeleteSelected = async () => {
+    try {
+      await deleteAppointments(selectedAppointments);
+      setAppointments(prev =>
+        prev.filter(a => !selectedAppointments.includes(a.id))
+      );
+      setSelectedAppointments([]);
+      toast.success("Citas eliminadas");
+    } catch {
+      toast.error("Error al eliminar citas");
+    }
+  };
+
+  const handleCreate = async () => {
+    const { name, phone, date, time, service_id } = newAppointment;
+    if (!name || !phone || !date || !time || !service_id) {
+      toast.error("Completa todos los campos");
+      return;
+    }
+
+    try {
+      await createAppointment({ ...newAppointment, status: "accepted" });
+      toast.success("Cita creada correctamente");
+      setNewAppointment({ name: "", phone: "", date: "", time: "", service_id: "" });
+    } catch {
+      toast.error("Error al crear la cita");
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -113,8 +157,7 @@ const AppointmentsManagement = () => {
         return <Badge variant="outline">Desconocido</Badge>;
     }
   };
-  
-  // Format date string
+
   const formatDate = (dateStr: string) => {
     try {
       return format(parseISO(dateStr), "EEEE, d 'de' MMMM", { locale: es });
@@ -122,53 +165,83 @@ const AppointmentsManagement = () => {
       return dateStr;
     }
   };
-  
-  // Filter appointments based on status
-  const filteredAppointments = statusFilter === "all" 
-    ? appointments 
+
+    const filteredAppointments = statusFilter === "all"
+    ? appointments
     : appointments.filter(a => a.status === statusFilter);
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold tracking-tight">Gestión de Citas</h1>
+        {selectedAppointments.length > 0 && (
+          <Button variant="destructive" onClick={handleDeleteSelected}>
+            <Trash2Icon className="w-4 h-4 mr-2" />
+            Eliminar seleccionadas
+          </Button>
+        )}
       </div>
-      
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Crear nueva cita</CardTitle>
+          <CardDescription>Se marcará como confirmada automáticamente</CardDescription>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-6 gap-2">
+          <Input placeholder="Nombre" value={newAppointment.name} onChange={(e) => setNewAppointment({ ...newAppointment, name: e.target.value })} />
+          <Input placeholder="Teléfono" value={newAppointment.phone} onChange={(e) => setNewAppointment({ ...newAppointment, phone: e.target.value })} />
+          <Input type="date" value={newAppointment.date} onChange={(e) => setNewAppointment({ ...newAppointment, date: e.target.value })} />
+          <Input type="time" value={newAppointment.time} onChange={(e) => setNewAppointment({ ...newAppointment, time: e.target.value })} />
+          <Select value={newAppointment.service_id} onValueChange={(value) => setNewAppointment({ ...newAppointment, service_id: value })}>
+            <SelectTrigger><SelectValue placeholder="Servicio" /></SelectTrigger>
+            <SelectContent>
+              {services.map(service => (
+                <SelectItem key={service.id} value={service.id}>{service.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button onClick={handleCreate}>
+            <PlusIcon className="mr-2 h-4 w-4" />
+            Crear
+          </Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Citas</CardTitle>
-          <CardDescription>
-            Gestiona las solicitudes de citas y actualiza su estado
-          </CardDescription>
+          <CardDescription>Gestiona solicitudes y estados</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center space-x-2 mb-4">
             <Label htmlFor="status-filter">Filtrar por estado:</Label>
-            <Select
-              value={statusFilter}
-              onValueChange={setStatusFilter}
-            >
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger id="status-filter" className="w-[180px]">
-                <SelectValue placeholder="Todos los estados" />
+                <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="pending">Pendientes</SelectItem>
                 <SelectItem value="accepted">Confirmadas</SelectItem>
                 <SelectItem value="rejected">Rechazadas</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          
+
           {isLoading ? (
             <div className="text-center py-8">Cargando citas...</div>
           ) : filteredAppointments.length > 0 ? (
             <Table>
-              <TableCaption>
-                Lista de todas las citas {statusFilter !== "all" && `(Filtrado: ${statusFilter})`}
-              </TableCaption>
+              <TableCaption>Lista de todas las citas</TableCaption>
               <TableHeader>
                 <TableRow>
+                  <TableHead>
+                    <input
+                      type="checkbox"
+                      checked={selectedAppointments.length === filteredAppointments.length}
+                      onChange={handleSelectAll}
+                    />
+                  </TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Teléfono</TableHead>
                   <TableHead>Servicio</TableHead>
@@ -181,92 +254,40 @@ const AppointmentsManagement = () => {
               <TableBody>
                 {filteredAppointments.map((appointment) => (
                   <TableRow key={appointment.id}>
-                    <TableCell className="font-medium">{appointment.name}</TableCell>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selectedAppointments.includes(appointment.id)}
+                        onChange={() => handleSelect(appointment.id)}
+                      />
+                    </TableCell>
+                    <TableCell>{appointment.name}</TableCell>
                     <TableCell>{appointment.phone}</TableCell>
-                    <TableCell>{appointment.service?.name || "Desconocido"}</TableCell>
+                    <TableCell>{appointment.service?.name || "—"}</TableCell>
                     <TableCell>{formatDate(appointment.date)}</TableCell>
                     <TableCell>{appointment.time}</TableCell>
                     <TableCell>{getStatusBadge(appointment.status)}</TableCell>
                     <TableCell className="text-right">
-                      <div className="flex justify-end space-x-2">
+                      <div className="flex gap-2 justify-end">
                         {appointment.status === "pending" && (
                           <>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8 bg-success/10 hover:bg-success/20 hover:text-success-foreground"
-                                    onClick={() => handleUpdateStatus(appointment.id, "accepted")}
-                                  >
-                                    <CheckIcon className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Aceptar cita</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    className="h-8 w-8 bg-destructive/10 hover:bg-destructive/20 hover:text-destructive-foreground"
-                                    onClick={() => handleUpdateStatus(appointment.id, "rejected")}
-                                  >
-                                    <XIcon className="h-4 w-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Rechazar cita</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Button size="icon" onClick={() => handleUpdateStatus(appointment.id, "accepted")}>
+                              <CheckIcon className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" onClick={() => handleUpdateStatus(appointment.id, "rejected")}>
+                              <XIcon className="h-4 w-4" />
+                            </Button>
                           </>
                         )}
-                        
-                        {appointment.status === "accepted" && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8 bg-destructive/10 hover:bg-destructive/20 hover:text-destructive-foreground"
-                                  onClick={() => handleUpdateStatus(appointment.id, "rejected")}
-                                >
-                                  <XIcon className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Cancelar cita</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                        
                         {appointment.status === "rejected" && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8 bg-success/10 hover:bg-success/20 hover:text-success-foreground"
-                                  onClick={() => handleUpdateStatus(appointment.id, "accepted")}
-                                >
-                                  <CheckIcon className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Aceptar cita</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Button size="icon" onClick={() => handleUpdateStatus(appointment.id, "accepted")}>
+                            <CheckIcon className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {appointment.status === "accepted" && (
+                          <Button size="icon" onClick={() => handleUpdateStatus(appointment.id, "rejected")}>
+                            <XIcon className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -275,13 +296,9 @@ const AppointmentsManagement = () => {
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                {statusFilter === "all"
-                  ? "No hay citas registradas"
-                  : `No hay citas con estado "${statusFilter}"`}
-              </p>
-            </div>
+            <p className="text-center text-muted-foreground py-8">
+              No hay citas para mostrar
+            </p>
           )}
         </CardContent>
       </Card>
