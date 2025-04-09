@@ -426,3 +426,39 @@ export const getDayName = (dayNumber: number): string => {
   const date = new Date(2023, 0, dayNumber + 2); // January 2, 2023 was a Monday
   return format(date, "EEEE", { locale: es });
 };
+export const createAppointment = async (
+  appointment: Omit<Appointment, "id" | "created_at"> & { status?: "pending" | "accepted" | "rejected" }
+): Promise<Appointment> => {
+  const newAppointment = {
+    ...appointment,
+    status: appointment.status || "pending"
+  };
+
+  const { data, error } = await supabase
+    .from("appointments")
+    .insert([newAppointment])
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating appointment:", error);
+    throw error;
+  }
+
+  return {
+    ...data,
+    status: data.status as "pending" | "accepted" | "rejected"
+  };
+};
+
+export const deleteAppointments = async (ids: string[]): Promise<void> => {
+  const { error } = await supabase
+    .from("appointments")
+    .delete()
+    .in("id", ids);
+
+  if (error) {
+    console.error("Error deleting appointments:", error);
+    throw error;
+  }
+};
