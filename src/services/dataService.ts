@@ -277,28 +277,6 @@ export const getAppointmentsByPhone = async (phone: string): Promise<Appointment
   });
 };
 
-export const createAppointment = async (appointment: Omit<Appointment, "id" | "created_at" | "status">): Promise<Appointment> => {
-  const newAppointment = {
-    ...appointment,
-    status: "pending" as const,
-  };
-  
-  const { data, error } = await supabase
-    .from('appointments')
-    .insert([newAppointment])
-    .select()
-    .single();
-  
-  if (error) {
-    console.error("Error creating appointment:", error);
-    throw error;
-  }
-  
-  return {
-    ...data,
-    status: data.status as 'pending' | 'accepted' | 'rejected'
-  };
-};
 
 export const updateAppointmentStatus = async (id: string, status: "pending" | "accepted" | "rejected"): Promise<Appointment | undefined> => {
   const { data, error } = await supabase
