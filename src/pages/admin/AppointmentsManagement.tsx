@@ -59,36 +59,36 @@ const AppointmentsManagement = () => {
     service_id: "",
   });
 
+  const fetchAppointmentsAndServices = async () => {
+    try {
+      const [appointmentsData, servicesData] = await Promise.all([
+        getAppointments(),
+        getServices(),
+      ]);
+
+      const sortedAppointments = appointmentsData.sort((a, b) => {
+        const dateComparison = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (dateComparison !== 0) return dateComparison;
+        return a.time.localeCompare(b.time);
+      });
+
+      const appointmentsWithService = sortedAppointments.map(appointment => {
+        const service = servicesData.find(s => s.id === appointment.service_id);
+        return { ...appointment, service };
+      });
+
+      setAppointments(appointmentsWithService);
+      setServices(servicesData);
+    } catch (error) {
+      console.error("Error fetching appointments data:", error);
+      toast.error("Error al cargar las citas");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [appointmentsData, servicesData] = await Promise.all([
-          getAppointments(),
-          getServices(),
-        ]);
-
-        const sortedAppointments = appointmentsData.sort((a, b) => {
-          const dateComparison = new Date(b.date).getTime() - new Date(a.date).getTime();
-          if (dateComparison !== 0) return dateComparison;
-          return a.time.localeCompare(b.time);
-        });
-
-        const appointmentsWithService = sortedAppointments.map(appointment => {
-          const service = servicesData.find(s => s.id === appointment.service_id);
-          return { ...appointment, service };
-        });
-
-        setAppointments(appointmentsWithService);
-        setServices(servicesData);
-      } catch (error) {
-        console.error("Error fetching appointments data:", error);
-        toast.error("Error al cargar las citas");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchAppointmentsAndServices();
   }, []);
 
   const handleUpdateStatus = async (id: string, status: "accepted" | "rejected") => {
@@ -140,24 +140,24 @@ const AppointmentsManagement = () => {
       await createAppointment({ ...newAppointment, status: "accepted" });
       toast.success("Cita creada correctamente");
       setNewAppointment({ name: "", phone: "", date: "", time: "", service_id: "" });
+      await fetchAppointmentsAndServices(); // Refrescar lista después de crear
     } catch {
       toast.error("Error al crear la cita");
     }
   };
 
   const getStatusBadge = (status: string) => {
-  switch (status) {
-    case "pending":
-      return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Pendiente</Badge>;
-    case "accepted":
-      return <Badge className="bg-green-600 text-white hover:bg-green-700">Confirmada</Badge>;
-    case "rejected":
-      return <Badge className="bg-red-600 text-white hover:bg-red-700">Rechazada</Badge>;
-    default:
-      return <Badge variant="outline">Desconocido</Badge>;
-  }
-};
-
+    switch (status) {
+      case "pending":
+        return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Pendiente</Badge>;
+      case "accepted":
+        return <Badge className="bg-green-600 text-white hover:bg-green-700">Confirmada</Badge>;
+      case "rejected":
+        return <Badge className="bg-red-600 text-white hover:bg-red-700">Rechazada</Badge>;
+      default:
+        return <Badge variant="outline">Desconocido</Badge>;
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     try {
@@ -167,7 +167,7 @@ const AppointmentsManagement = () => {
     }
   };
 
-    const filteredAppointments = statusFilter === "all"
+  const filteredAppointments = statusFilter === "all"
     ? appointments
     : appointments.filter(a => a.status === statusFilter);
 
