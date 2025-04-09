@@ -97,7 +97,7 @@ const BookAppointment = () => {
               const [hour, minute] = slot.time.split(":").map(Number);
               const slotDate = new Date(selectedDate);
               slotDate.setHours(hour, minute, 0, 0);
-              return slotDate > now;
+            return slotDate >= now;
             });
           }
 
