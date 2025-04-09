@@ -28,6 +28,11 @@ const AdminSidebar = () => {
       path: "/admin/appointments",
       icon: <Users className="h-5 w-5" />,
     },
+    {
+  title: "Configuración de citas",
+  path: "/admin/configuracion-citas",
+  icon: <Clock className="h-5 w-5" />,
+}
   ];
 
   return (
