@@ -80,7 +80,7 @@ const BookAppointment = () => {
           const date = addDays(today, i);
           
           // Ajustar día JS (0=Domingo) a día BD (0=Lunes)
-const dbDay = (date.getDay() + 6) % 7;
+const dbDay = date.getDay();
 if (availableDaysOfWeek.includes(dbDay)) {
   dates.push(date);
 }
