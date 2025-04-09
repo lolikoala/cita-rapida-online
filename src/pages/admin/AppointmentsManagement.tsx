@@ -146,17 +146,18 @@ const AppointmentsManagement = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pending":
-        return <Badge variant="outline" className="bg-warning/20 text-warning-foreground">Pendiente</Badge>;
-      case "accepted":
-        return <Badge variant="outline" className="bg-success/20 text-success-foreground">Confirmada</Badge>;
-      case "rejected":
-        return <Badge variant="outline" className="bg-destructive/20 text-destructive-foreground">Rechazada</Badge>;
-      default:
-        return <Badge variant="outline">Desconocido</Badge>;
-    }
-  };
+  switch (status) {
+    case "pending":
+      return <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">Pendiente</Badge>;
+    case "accepted":
+      return <Badge className="bg-green-600 text-white hover:bg-green-700">Confirmada</Badge>;
+    case "rejected":
+      return <Badge className="bg-red-600 text-white hover:bg-red-700">Rechazada</Badge>;
+    default:
+      return <Badge variant="outline">Desconocido</Badge>;
+  }
+};
+
 
   const formatDate = (dateStr: string) => {
     try {
