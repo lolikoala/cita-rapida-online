@@ -1,120 +1,297 @@
 
 import { Appointment, BusinessHour, Service, TimeSlot } from "@/types";
-import { mockAppointments, mockBusinessHours, mockServices } from "./mockData";
 import { format, addMinutes, parse, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
-
-// For now, we will use the mock data
-// Later, this will be replaced with Supabase API calls
-let services = [...mockServices];
-let businessHours = [...mockBusinessHours];
-let appointments = [...mockAppointments];
+import { supabase } from "@/integrations/supabase/client";
 
 // Services
 export const getServices = async (): Promise<Service[]> => {
-  return [...services];
+  const { data, error } = await supabase
+    .from('services')
+    .select('*')
+    .order('created_at', { ascending: false });
+  
+  if (error) {
+    console.error("Error fetching services:", error);
+    throw error;
+  }
+  
+  return data || [];
 };
 
 export const getServiceById = async (id: string): Promise<Service | undefined> => {
-  return services.find((service) => service.id === id);
+  const { data, error } = await supabase
+    .from('services')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    if (error.code === 'PGRST116') { // Record not found
+      return undefined;
+    }
+    console.error("Error fetching service:", error);
+    throw error;
+  }
+  
+  return data;
 };
 
 export const createService = async (service: Omit<Service, "id" | "created_at">): Promise<Service> => {
-  const newService: Service = {
-    id: Date.now().toString(),
-    ...service,
-    created_at: new Date().toISOString(),
-  };
-  services.push(newService);
-  return newService;
+  const { data, error } = await supabase
+    .from('services')
+    .insert([service])
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error creating service:", error);
+    throw error;
+  }
+  
+  return data;
 };
 
 export const updateService = async (id: string, service: Partial<Service>): Promise<Service | undefined> => {
-  const index = services.findIndex((s) => s.id === id);
-  if (index !== -1) {
-    services[index] = { ...services[index], ...service };
-    return services[index];
+  const { data, error } = await supabase
+    .from('services')
+    .update(service)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error updating service:", error);
+    throw error;
   }
-  return undefined;
+  
+  return data;
 };
 
 export const deleteService = async (id: string): Promise<boolean> => {
-  const initialLength = services.length;
-  services = services.filter((service) => service.id !== id);
-  return initialLength > services.length;
+  const { error } = await supabase
+    .from('services')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error("Error deleting service:", error);
+    throw error;
+  }
+  
+  return true;
 };
 
 // Business Hours
 export const getBusinessHours = async (): Promise<BusinessHour[]> => {
-  return [...businessHours];
+  const { data, error } = await supabase
+    .from('business_hours')
+    .select('*')
+    .order('day_of_week', { ascending: true })
+    .order('start_time', { ascending: true });
+  
+  if (error) {
+    console.error("Error fetching business hours:", error);
+    throw error;
+  }
+  
+  return data || [];
 };
 
 export const getBusinessHourById = async (id: string): Promise<BusinessHour | undefined> => {
-  return businessHours.find((hour) => hour.id === id);
+  const { data, error } = await supabase
+    .from('business_hours')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    if (error.code === 'PGRST116') { // Record not found
+      return undefined;
+    }
+    console.error("Error fetching business hour:", error);
+    throw error;
+  }
+  
+  return data;
 };
 
 export const createBusinessHour = async (hour: Omit<BusinessHour, "id">): Promise<BusinessHour> => {
-  const newHour: BusinessHour = {
-    id: Date.now().toString(),
-    ...hour,
-  };
-  businessHours.push(newHour);
-  return newHour;
+  const { data, error } = await supabase
+    .from('business_hours')
+    .insert([hour])
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error creating business hour:", error);
+    throw error;
+  }
+  
+  return data;
 };
 
 export const updateBusinessHour = async (id: string, hour: Partial<BusinessHour>): Promise<BusinessHour | undefined> => {
-  const index = businessHours.findIndex((h) => h.id === id);
-  if (index !== -1) {
-    businessHours[index] = { ...businessHours[index], ...hour };
-    return businessHours[index];
+  const { data, error } = await supabase
+    .from('business_hours')
+    .update(hour)
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error updating business hour:", error);
+    throw error;
   }
-  return undefined;
+  
+  return data;
 };
 
 export const deleteBusinessHour = async (id: string): Promise<boolean> => {
-  const initialLength = businessHours.length;
-  businessHours = businessHours.filter((hour) => hour.id !== id);
-  return initialLength > businessHours.length;
+  const { error } = await supabase
+    .from('business_hours')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    console.error("Error deleting business hour:", error);
+    throw error;
+  }
+  
+  return true;
 };
 
 // Appointments
 export const getAppointments = async (): Promise<Appointment[]> => {
-  return [...appointments];
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('*, service:service_id(name, duration_minutes, price)')
+    .order('date', { ascending: true })
+    .order('time', { ascending: true });
+  
+  if (error) {
+    console.error("Error fetching appointments:", error);
+    throw error;
+  }
+  
+  // Map the nested service object to match our expected type
+  return (data || []).map(appointment => ({
+    ...appointment,
+    service: appointment.service ? {
+      id: appointment.service_id,
+      name: appointment.service.name,
+      duration_minutes: appointment.service.duration_minutes,
+      price: appointment.service.price,
+      created_at: '',  // This field isn't used in the UI for the nested service
+    } : undefined
+  }));
 };
 
 export const getAppointmentById = async (id: string): Promise<Appointment | undefined> => {
-  return appointments.find((appointment) => appointment.id === id);
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('*, service:service_id(name, duration_minutes, price)')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    if (error.code === 'PGRST116') { // Record not found
+      return undefined;
+    }
+    console.error("Error fetching appointment:", error);
+    throw error;
+  }
+  
+  // Map the nested service object to match our expected type
+  return data ? {
+    ...data,
+    service: data.service ? {
+      id: data.service_id,
+      name: data.service.name,
+      duration_minutes: data.service.duration_minutes,
+      price: data.service.price,
+      created_at: '',  // This field isn't used in the UI for the nested service
+    } : undefined
+  } : undefined;
 };
 
 export const getAppointmentsByPhone = async (phone: string): Promise<Appointment[]> => {
-  return appointments.filter((appointment) => appointment.phone === phone);
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('*, service:service_id(name, duration_minutes, price)')
+    .eq('phone', phone)
+    .order('date', { ascending: true })
+    .order('time', { ascending: true });
+  
+  if (error) {
+    console.error("Error fetching appointments by phone:", error);
+    throw error;
+  }
+  
+  // Map the nested service object to match our expected type
+  return (data || []).map(appointment => ({
+    ...appointment,
+    service: appointment.service ? {
+      id: appointment.service_id,
+      name: appointment.service.name,
+      duration_minutes: appointment.service.duration_minutes,
+      price: appointment.service.price,
+      created_at: '',  // This field isn't used in the UI for the nested service
+    } : undefined
+  }));
 };
 
 export const createAppointment = async (appointment: Omit<Appointment, "id" | "created_at" | "status">): Promise<Appointment> => {
-  const newAppointment: Appointment = {
-    id: Date.now().toString(),
+  const newAppointment = {
     ...appointment,
-    status: "pending",
-    created_at: new Date().toISOString(),
+    status: "pending" as const,
   };
-  appointments.push(newAppointment);
-  return newAppointment;
+  
+  const { data, error } = await supabase
+    .from('appointments')
+    .insert([newAppointment])
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error creating appointment:", error);
+    throw error;
+  }
+  
+  return data;
 };
 
 export const updateAppointmentStatus = async (id: string, status: "pending" | "accepted" | "rejected"): Promise<Appointment | undefined> => {
-  const index = appointments.findIndex((a) => a.id === id);
-  if (index !== -1) {
-    appointments[index] = { ...appointments[index], status };
-    return appointments[index];
+  const { data, error } = await supabase
+    .from('appointments')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .single();
+  
+  if (error) {
+    console.error("Error updating appointment status:", error);
+    throw error;
   }
-  return undefined;
+  
+  return data;
 };
 
 // Time Slots
 export const getAvailableTimeSlots = async (date: string, serviceId: string): Promise<TimeSlot[]> => {
   // Get day of week for the selected date (0 = Sunday, 1 = Monday, etc.)
   const dayOfWeek = new Date(date).getDay();
-  const dayHours = businessHours.filter((hour) => hour.day_of_week === dayOfWeek);
+  
+  // Get business hours for the selected day
+  const { data: dayHours, error: hoursError } = await supabase
+    .from('business_hours')
+    .select('*')
+    .eq('day_of_week', dayOfWeek);
+  
+  if (hoursError) {
+    console.error("Error fetching business hours:", hoursError);
+    throw hoursError;
+  }
   
   if (dayHours.length === 0) {
     return [];
@@ -126,6 +303,18 @@ export const getAvailableTimeSlots = async (date: string, serviceId: string): Pr
     return [];
   }
 
+  // Get all appointments for the selected date to check availability
+  const { data: dateAppointments, error: appointmentsError } = await supabase
+    .from('appointments')
+    .select('*, service:service_id(duration_minutes)')
+    .eq('date', date)
+    .neq('status', 'rejected'); // Exclude rejected appointments
+  
+  if (appointmentsError) {
+    console.error("Error fetching appointments:", appointmentsError);
+    throw appointmentsError;
+  }
+
   const allTimeSlots: TimeSlot[] = [];
   
   // Generate time slots for each business hour block
@@ -133,8 +322,8 @@ export const getAvailableTimeSlots = async (date: string, serviceId: string): Pr
     const { start_time, end_time } = hourBlock;
     
     // Parse start and end times
-    const startTime = parse(start_time, "HH:mm", new Date());
-    const endTime = parse(end_time, "HH:mm", new Date());
+    const startTime = parse(start_time, "HH:mm:ss", new Date());
+    const endTime = parse(end_time, "HH:mm:ss", new Date());
     
     // Generate slots in 15-minute intervals
     let currentSlot = startTime;
@@ -142,16 +331,26 @@ export const getAvailableTimeSlots = async (date: string, serviceId: string): Pr
       const slotTime = format(currentSlot, "HH:mm");
       
       // Check if the slot is available (not booked)
-      const isBooked = appointments.some(
-        (appointment) => 
-          appointment.date === date && 
-          appointment.status !== "rejected" &&
-          isTimeSlotOverlapping(
-            appointment.time, 
-            slotTime, 
-            appointment.service_id, 
-            serviceId
-          )
+      const isBooked = dateAppointments.some(
+        (appointment) => {
+          // Convert appointment time to Date for comparison
+          const appointmentStart = parse(appointment.time, "HH:mm:ss", new Date());
+          const appointmentEnd = addMinutes(
+            appointmentStart, 
+            appointment.service?.duration_minutes || 30
+          );
+          
+          // Convert current slot time to Date for comparison
+          const slotStart = parse(slotTime, "HH:mm", new Date());
+          const slotEnd = addMinutes(slotStart, service.duration_minutes);
+          
+          // Check if the slots overlap
+          return (
+            isWithinInterval(slotStart, { start: appointmentStart, end: appointmentEnd }) ||
+            isWithinInterval(slotEnd, { start: appointmentStart, end: appointmentEnd }) ||
+            isWithinInterval(appointmentStart, { start: slotStart, end: slotEnd })
+          );
+        }
       );
       
       allTimeSlots.push({
@@ -165,34 +364,6 @@ export const getAvailableTimeSlots = async (date: string, serviceId: string): Pr
   }
   
   return allTimeSlots;
-};
-
-// Helper function to check if two time slots overlap
-const isTimeSlotOverlapping = (
-  bookedTime: string,
-  requestedTime: string,
-  bookedServiceId: string,
-  requestedServiceId: string
-): boolean => {
-  const bookedService = services.find((s) => s.id === bookedServiceId);
-  const requestedService = services.find((s) => s.id === requestedServiceId);
-  
-  if (!bookedService || !requestedService) {
-    return false;
-  }
-  
-  const bookedStart = parse(bookedTime, "HH:mm", new Date());
-  const bookedEnd = addMinutes(bookedStart, bookedService.duration_minutes);
-  
-  const requestedStart = parse(requestedTime, "HH:mm", new Date());
-  const requestedEnd = addMinutes(requestedStart, requestedService.duration_minutes);
-  
-  // Check if the time slots overlap
-  return (
-    isWithinInterval(requestedStart, { start: bookedStart, end: bookedEnd }) ||
-    isWithinInterval(requestedEnd, { start: bookedStart, end: bookedEnd }) ||
-    isWithinInterval(bookedStart, { start: requestedStart, end: requestedEnd })
-  );
 };
 
 // Helper function to get day name
