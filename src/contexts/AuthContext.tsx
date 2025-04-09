@@ -3,8 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { User } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
-import { Session } from "@supabase/supabase-js";
+import { signInWithCredentials, getCurrentUser } from "@/services/authService";
 
 type AuthContextType = {
   user: User | null;
@@ -18,42 +17,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Establish auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
-        setSession(currentSession);
-        if (currentSession?.user) {
-          const user = { 
-            id: currentSession.user.id, 
-            username: currentSession.user.email || "admin" 
-          };
-          setUser(user);
-          localStorage.setItem("user", JSON.stringify(user));
-        } else {
-          setUser(null);
-          localStorage.removeItem("user");
-        }
-      }
-    );
-
-    // Check for existing session
+    // Check for user in localStorage on initial load
     const initializeAuth = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (currentSession?.user) {
-          const user = { 
-            id: currentSession.user.id, 
-            username: currentSession.user.email || "admin" 
-          };
-          setUser(user);
-          setSession(currentSession);
-          localStorage.setItem("user", JSON.stringify(user));
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -63,29 +37,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     initializeAuth();
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      // Use Supabase authentication
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data?.user) {
+      const data = await signInWithCredentials(username, password);
+      
+      if (data) {
         const user = { 
-          id: data.user.id, 
-          username: data.user.email || "admin" 
+          id: data.id, 
+          username: data.username 
         };
         setUser(user);
         localStorage.setItem("user", JSON.stringify(user));
@@ -98,48 +60,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       console.error("Login error:", error);
       
-      // Check for specific error cases
-      if (error.message?.includes("Email not confirmed")) {
-        toast({
-          title: "Email not confirmed",
-          description: "Please check your email and confirm your account",
-          variant: "destructive",
-        });
-      } else if (error.message?.includes("Invalid login credentials")) {
-        toast({
-          title: "Invalid credentials",
-          description: "Please check your email and password",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Login failed",
-          description: error.message || "An error occurred during login",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Credenciales incorrectas",
+        description: "Por favor revise su usuario y contraseña",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const logout = async () => {
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      localStorage.removeItem("user");
-      toast({
-        title: "Logged out successfully",
-      });
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast({
-        title: "Logout failed",
-        description: "An error occurred during logout",
-        variant: "destructive",
-      });
-    }
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("user");
+    toast({
+      title: "Logged out successfully",
+    });
+    navigate("/login");
   };
 
   return (

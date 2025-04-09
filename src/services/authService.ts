@@ -1,58 +1,40 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export const signUpWithEmail = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+export const signInWithCredentials = async (username: string, password: string) => {
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('*')
+    .eq('username', username)
+    .eq('password', password)
+    .single();
 
   if (error) {
     throw error;
+  }
+
+  if (!data) {
+    throw new Error("Credenciales incorrectas");
   }
 
   return data;
-};
-
-export const signInWithEmail = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
-};
-
-export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  
-  if (error) {
-    throw error;
-  }
-  
-  return true;
 };
 
 export const getCurrentUser = async () => {
-  const { data, error } = await supabase.auth.getUser();
-  
-  if (error) {
-    throw error;
+  // Check if user is stored in localStorage
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser) {
+    return null;
   }
   
-  return data.user;
+  return JSON.parse(storedUser);
 };
 
 export const getSession = async () => {
-  const { data, error } = await supabase.auth.getSession();
-  
-  if (error) {
-    throw error;
+  const storedUser = localStorage.getItem('user');
+  if (!storedUser) {
+    return null;
   }
   
-  return data.session;
+  return { user: JSON.parse(storedUser) };
 };
