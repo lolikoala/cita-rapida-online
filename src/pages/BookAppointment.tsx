@@ -115,11 +115,18 @@ const BookAppointment = () => {
 
   
   const getMinDate = () => {
-    const today = new Date();
-    if (sameDayPolicy === "next_day") return new Date(today.setDate(today.getDate() + 1));
-    if (sameDayPolicy === "next_week") return new Date(today.setDate(today.getDate() + 7));
-    return today;
-  };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // eliminar la hora
+
+  if (sameDayPolicy === "next_day") {
+    today.setDate(today.getDate() + 1);
+  } else if (sameDayPolicy === "next_week") {
+    today.setDate(today.getDate() + 7);
+  }
+
+  return today;
+};
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
