@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
 import AdminLayout from "@/components/AdminLayout";
 import ConfiguracionCitas from "@/pages/admin/ConfiguracionCitas";
+import BloqueosHorarios from "@/pages/admin/BloqueosHorarios";
 
 
 // Public pages
@@ -50,6 +51,7 @@ const App = () => (
           }>
   <Route path="dashboard" element={<Dashboard />} />
   <Route path="business-hours" element={<BusinessHoursManagement />} />
+  <Route path="bloqueos" element={<BloqueosHorarios />} />
   <Route path="services" element={<ServicesManagement />} />
   <Route path="appointments" element={<AppointmentsManagement />} />
   <Route path="configuracion-citas" element={<ConfiguracionCitas />} />
