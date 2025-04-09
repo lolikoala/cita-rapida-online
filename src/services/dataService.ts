@@ -298,30 +298,80 @@ export const updateAppointmentStatus = async (id: string, status: "pending" | "a
 };
 
 // Time Slots
-export const getAvailableTimeSlots = async (date: string, serviceId: string): Promise<TimeSlot[]> => {
-  // Get day of week for the selected date (0 = Sunday, 1 = Monday, etc.)
-  const dayOfWeek = new Date(date).getDay();
-  
-  // Get business hours for the selected day
-  const { data: dayHours, error: hoursError } = await supabase
-    .from('business_hours')
-    .select('*')
-    .eq('day_of_week', dayOfWeek);
-  
-  if (hoursError) {
-    console.error("Error fetching business hours:", hoursError);
-    throw hoursError;
-  }
-  
-  if (dayHours.length === 0) {
-    return [];
-  }
+export const getAvailableTimeSlots = async (
+  date: string,
+  serviceId: string
+): Promise<TimeSlot[]> => {
+  const [hoursRes, appointmentsRes, blockedRes] = await Promise.all([
+    supabase.from("business_hours").select("*"),
+    supabase
+      .from("appointments")
+      .select("*")
+      .eq("date", date)
+      .eq("status", "accepted"),
+    supabase
+      .from("blocked_slots")
+      .select("*")
+      .eq("date", date)
+  ]);
 
-  // Get the service to know the duration
-  const service = await getServiceById(serviceId);
-  if (!service) {
-    return [];
-  }
+  const businessHours = hoursRes.data || [];
+  const appointments = appointmentsRes.data || [];
+  const blockedSlots = blockedRes.data || [];
+
+  const dayOfWeek = new Date(date).getDay();
+  const todayHours = businessHours.filter((h) => h.day_of_week === dayOfWeek);
+
+  if (todayHours.length === 0) return [];
+
+  const serviceRes = await supabase
+    .from("services")
+    .select("duration_minutes")
+    .eq("id", serviceId)
+    .single();
+
+  const duration = serviceRes.data?.duration_minutes || 30;
+
+  // Verificar si el día está bloqueado completo
+  const isDayBlocked = blockedSlots.some((b) => !b.start_time && !b.end_time);
+  if (isDayBlocked) return [];
+
+  const generateTimeSlots = () => {
+    const slots: TimeSlot[] = [];
+
+    for (const block of todayHours) {
+      const [startHour, startMin] = block.start_time.split(":").map(Number);
+      const [endHour, endMin] = block.end_time.split(":").map(Number);
+
+      const start = new Date(`${date}T${block.start_time}`);
+      const end = new Date(`${date}T${block.end_time}`);
+
+      for (
+        let time = new Date(start);
+        time <= new Date(end.getTime() - duration * 60000);
+        time.setMinutes(time.getMinutes() + duration)
+      ) {
+        const timeString = time.toTimeString().slice(0, 5);
+
+        const isTaken = appointments.some((a) => a.time === timeString);
+        const isBlocked = blockedSlots.some((b) => {
+          if (!b.start_time || !b.end_time) return false;
+          return timeString >= b.start_time && timeString < b.end_time;
+        });
+
+        slots.push({
+          time: timeString,
+          available: !isTaken && !isBlocked,
+        });
+      }
+    }
+
+    return slots;
+  };
+
+  return generateTimeSlots();
+};
+
 
   // Get all appointments for the selected date to check availability
   const { data: dateAppointments, error: appointmentsError } = await supabase
