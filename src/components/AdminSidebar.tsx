@@ -19,6 +19,12 @@ const AdminSidebar = () => {
       icon: <Clock className="h-5 w-5" />,
     },
     {
+  title: "Bloqueos",
+  path: "/admin/bloqueos",
+  icon: <CalendarDays className="h-5 w-5" />,
+},
+
+    {
       title: "Servicios",
       path: "/admin/services",
       icon: <ShoppingBag className="h-5 w-5" />,
