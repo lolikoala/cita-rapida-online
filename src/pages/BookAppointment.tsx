@@ -77,10 +77,13 @@ const BookAppointment = () => {
         
         for (let i = 0; i < 30; i++) {
           const date = addDays(today, i);
-          // Check if this day of the week has business hours
-          if (availableDaysOfWeek.includes(date.getDay())) {
-            dates.push(date);
-          }
+          
+          // Ajustar día JS (0=Domingo) a día BD (0=Lunes)
+const dbDay = (date.getDay() + 6) % 7;
+if (availableDaysOfWeek.includes(dbDay)) {
+  dates.push(date);
+}
+
         }
         
         setAvailableDates(dates);
