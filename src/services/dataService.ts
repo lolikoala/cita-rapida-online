@@ -401,8 +401,7 @@ export const getAvailableTimeSlots = async (date: string, serviceId: string): Pr
 
 // Helper function to get day name
 export const getDayName = (dayNumber: number): string => {
-  const correctedDay = (dayNumber + 1) % 7; // Esto corrige el desfase exacto
-  const date = new Date(2023, 0, correctedDay + 1); // 1 Ene 2023 fue domingo
+  const date = new Date(2023, 0, dayNumber + 2); // Enero 2 de 2023 fue lunes
   return format(date, "EEEE", { locale: es });
 };
 
