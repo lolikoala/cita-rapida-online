@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, isAfter, addDays, isSameDay } from "date-fns";
@@ -10,9 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase"; // Import Supabase
+import { supabase } from "@/lib/supabase";
 
-import { getServices, getServiceById, getBusinessHours, getAvailableTimeSlots, createAppointment } from "@/services/dataService";
+import {
+  getServices,
+  getServiceById,
+  getBusinessHours,
+  getAvailableTimeSlots,
+  createAppointment,
+} from "@/services/dataService";
+
 import { Service, TimeSlot } from "@/types";
 
 const BookAppointment = () => {
@@ -24,24 +30,9 @@ const BookAppointment = () => {
   const [selectedServiceId, setSelectedServiceId] = useState<string>(preSelectedServiceId || "");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<TimeSlot[]>([]);
-  
-  const [maxMonthsAhead, setMaxMonthsAhead] = useState<number>(3);
+
   const [sameDayPolicy, setSameDayPolicy] = useState<"same_day" | "next_day" | "next_week">("same_day");
-
-  useEffect(() => {
-    const fetchPolicy = async () => {
-      const { data } = await supabase
-        .from("booking_settings")
-        .select("same_day_policy")
-        .single();
-
-      if (data?.same_day_policy) {
-        setSameDayPolicy(data.same_day_policy);
-      }
-    };
-
-    fetchPolicy();
-  }, []);
+  const [maxMonthsAhead, setMaxMonthsAhead] = useState<number>(1);
 
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [name, setName] = useState("");
@@ -49,7 +40,25 @@ const BookAppointment = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
 
-  // Fetch services
+  useEffect(() => {
+    const fetchPolicy = async () => {
+      const { data } = await supabase
+        .from("booking_settings")
+        .select("same_day_policy, max_months_ahead")
+        .single();
+
+      if (data?.same_day_policy) {
+        setSameDayPolicy(data.same_day_policy);
+      }
+
+      if (data?.max_months_ahead) {
+        setMaxMonthsAhead(data.max_months_ahead);
+      }
+    };
+
+    fetchPolicy();
+  }, []);
+
   useEffect(() => {
     const fetchServices = async () => {
       try {
@@ -63,30 +72,27 @@ const BookAppointment = () => {
     fetchServices();
   }, []);
 
-  // Fetch available days based on business hours
   useEffect(() => {
     const fetchAvailableDays = async () => {
       try {
         const businessHours = await getBusinessHours();
-        
-        // Create an array of days of the week that have business hours (0-6)
-        const availableDaysOfWeek = [...new Set(businessHours.map(hour => hour.day_of_week))];
-        
-        // Generate dates for the next 30 days that match available days of the week
-        const today = new Date();
-        const dates: Date[] = [];
-        
-        for (let i = 0; i < 30; i++) {
-          const date = addDays(today, i);
-          
-          // Ajustar día JS (0=Domingo) a día BD (0=Lunes)
-const dbDay = date.getDay();
-if (availableDaysOfWeek.includes(dbDay)) {
-  dates.push(date);
-}
+        const availableDaysOfWeek = [...new Set(businessHours.map((hour) => hour.day_of_week))];
 
+        const today = new Date();
+        const maxDate = new Date(today);
+        maxDate.setMonth(today.getMonth() + maxMonthsAhead);
+
+        const dates: Date[] = [];
+        let date = new Date(today);
+
+        while (date <= maxDate) {
+          const dbDay = date.getDay();
+          if (availableDaysOfWeek.includes(dbDay)) {
+            dates.push(new Date(date));
+          }
+          date = addDays(date, 1);
         }
-        
+
         setAvailableDates(dates);
       } catch (error) {
         console.error("Error fetching available days:", error);
@@ -94,9 +100,7 @@ if (availableDaysOfWeek.includes(dbDay)) {
     };
 
     fetchAvailableDays();
-  }, []);
-
-  // Fetch available time slots when date and service are selected
+  }, [maxMonthsAhead]);
   useEffect(() => {
     const fetchTimeSlots = async () => {
       if (selectedServiceId && selectedDate) {
@@ -104,7 +108,7 @@ if (availableDaysOfWeek.includes(dbDay)) {
           const formattedDate = format(selectedDate, "yyyy-MM-dd");
           const slots = await getAvailableTimeSlots(formattedDate, selectedServiceId);
           setAvailableTimeSlots(slots);
-          setSelectedTime(""); // Reset selected time when date or service changes
+          setSelectedTime("");
         } catch (error) {
           console.error("Error fetching time slots:", error);
           setAvailableTimeSlots([]);
@@ -117,34 +121,36 @@ if (availableDaysOfWeek.includes(dbDay)) {
     fetchTimeSlots();
   }, [selectedDate, selectedServiceId]);
 
-  
   const getMinDate = () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // eliminar la hora
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (sameDayPolicy === "next_day") {
+      today.setDate(today.getDate() + 1);
+    } else if (sameDayPolicy === "next_week") {
+      today.setDate(today.getDate() + 7);
+    }
+    return today;
+  };
 
-  if (sameDayPolicy === "next_day") {
-    today.setDate(today.getDate() + 1);
-  } else if (sameDayPolicy === "next_week") {
-    today.setDate(today.getDate() + 7);
-  }
-
-  return today;
-};
-
+  const getMaxDate = () => {
+    const max = new Date();
+    max.setMonth(max.getMonth() + maxMonthsAhead);
+    return max;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedServiceId || !selectedDate || !selectedTime || !name || !phone) {
       toast.error("Por favor, completa todos los campos");
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       const formattedDate = format(selectedDate, "yyyy-MM-dd");
-      
+
       await createAppointment({
         service_id: selectedServiceId,
         name,
@@ -152,7 +158,7 @@ if (availableDaysOfWeek.includes(dbDay)) {
         date: formattedDate,
         time: selectedTime,
       });
-      
+
       toast.success("¡Cita solicitada con éxito! Recibirás confirmación pronto.");
       navigate(`/check?phone=${phone}`);
     } catch (error) {
@@ -163,23 +169,21 @@ if (availableDaysOfWeek.includes(dbDay)) {
     }
   };
 
-  // Helper function to check if a date is in the available dates list
   const isDateAvailable = (date: Date) => {
-    return availableDates.some(availableDate => isSameDay(availableDate, date));
+    return availableDates.some((availableDate) => isSameDay(availableDate, date));
   };
-
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Reservar Cita</h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Step 1: Select Service */}
+        {/* Paso 1: Servicio */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">1. Selecciona el servicio</h2>
           <div>
             <Label htmlFor="service">Servicio</Label>
-            <Select 
-              value={selectedServiceId} 
+            <Select
+              value={selectedServiceId}
               onValueChange={setSelectedServiceId}
               required
             >
@@ -197,8 +201,8 @@ if (availableDaysOfWeek.includes(dbDay)) {
             </Select>
           </div>
         </div>
-        
-        {/* Step 2: Select Date */}
+
+        {/* Paso 2: Fecha */}
         {selectedServiceId && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">2. Selecciona una fecha</h2>
@@ -207,11 +211,9 @@ if (availableDaysOfWeek.includes(dbDay)) {
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                disabled={(date) => 
-  date < getMinDate() || 
-  !isDateAvailable(date)
-}
-
+                disabled={(date) =>
+                  date < getMinDate() || date > getMaxDate() || !isDateAvailable(date)
+                }
                 className="mx-auto"
                 locale={es}
                 modifiersClassNames={{
@@ -222,15 +224,15 @@ if (availableDaysOfWeek.includes(dbDay)) {
             </div>
           </div>
         )}
-        
-        {/* Step 3: Select Time */}
+
+        {/* Paso 3: Hora */}
         {selectedDate && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">3. Selecciona una hora</h2>
             <p className="text-muted-foreground">
               {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
             </p>
-            
+
             {availableTimeSlots.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {availableTimeSlots.map((slot) => (
@@ -249,23 +251,25 @@ if (availableDaysOfWeek.includes(dbDay)) {
             ) : (
               <Card>
                 <CardContent className="py-4 text-center">
-                  <p className="text-muted-foreground">No hay horarios disponibles para esta fecha</p>
+                  <p className="text-muted-foreground">
+                    No hay horarios disponibles para esta fecha
+                  </p>
                 </CardContent>
               </Card>
             )}
           </div>
         )}
-        
-        {/* Step 4: Contact Information */}
+
+        {/* Paso 4: Datos de contacto */}
         {selectedTime && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">4. Tus datos de contacto</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nombre completo</Label>
-                <Input 
-                  id="name" 
-                  value={name} 
+                <Input
+                  id="name"
+                  value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Nombre y apellidos"
                   required
@@ -273,10 +277,10 @@ if (availableDaysOfWeek.includes(dbDay)) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Teléfono</Label>
-                <Input 
-                  id="phone" 
-                  value={phone} 
-                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                   type="tel"
                   placeholder="600123456"
                   pattern="[0-9]{9}"
@@ -286,7 +290,7 @@ if (availableDaysOfWeek.includes(dbDay)) {
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-end">
               <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
                 {isLoading ? "Procesando..." : "Solicitar Cita"}
