@@ -35,3 +35,10 @@ export type User = {
   id: string;
   username: string;
 };
+
+export type BlockedSlot = {
+  id: string;
+  date: string;
+  start_time?: string;
+  end_time?: string;
+};

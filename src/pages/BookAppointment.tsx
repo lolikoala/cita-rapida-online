@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, isAfter, addDays, isSameDay } from "date-fns";
@@ -9,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { Clock } from "lucide-react";
 
 import {
   getServices,
@@ -102,6 +103,7 @@ const BookAppointment = () => {
 
     fetchAvailableDays();
   }, [maxMonthsAhead]);
+
   useEffect(() => {
     const fetchTimeSlots = async () => {
       if (selectedServiceId && selectedDate) {
@@ -174,6 +176,62 @@ const BookAppointment = () => {
   const isDateAvailable = (date: Date) => {
     return availableDates.some((availableDate) => isSameDay(availableDate, date));
   };
+
+  const getTimeSlotsByPeriod = () => {
+    const morningSlots: TimeSlot[] = [];
+    const afternoonSlots: TimeSlot[] = [];
+    const eveningSlots: TimeSlot[] = [];
+
+    availableTimeSlots.forEach(slot => {
+      const hour = parseInt(slot.time.split(':')[0]);
+      
+      if (hour < 12) {
+        morningSlots.push(slot);
+      } else if (hour < 17) {
+        afternoonSlots.push(slot);
+      } else {
+        eveningSlots.push(slot);
+      }
+    });
+
+    return {
+      morning: morningSlots,
+      afternoon: afternoonSlots,
+      evening: eveningSlots
+    };
+  };
+
+  const groupedTimeSlots = getTimeSlotsByPeriod();
+
+  const renderTimeSlotGroup = (title: string, slots: TimeSlot[]) => {
+    if (slots.length === 0) return null;
+    
+    return (
+      <div className="mb-4">
+        <h3 className="text-md font-medium mb-2">{title}</h3>
+        <div className="grid grid-cols-4 gap-2">
+          {slots.map((slot) => (
+            <div
+              key={slot.time}
+              className={`text-center rounded-md p-2 cursor-pointer transition-colors ${
+                selectedTime === slot.time
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-accent hover:bg-accent/80"
+              } ${!slot.available ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={() => {
+                if (slot.available) {
+                  setSelectedTime(slot.time);
+                }
+              }}
+            >
+              {slot.time}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Reservar Cita</h1>
@@ -227,7 +285,7 @@ const BookAppointment = () => {
           </div>
         )}
 
-        {/* Paso 3: Hora */}
+        {/* Paso 3: Hora - Nuevo diseño más intuitivo */}
         {selectedDate && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">3. Selecciona una hora</h2>
@@ -236,20 +294,25 @@ const BookAppointment = () => {
             </p>
 
             {availableTimeSlots.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {availableTimeSlots.map((slot) => (
-                  <Button
-                    key={slot.time}
-                    type="button"
-                    variant={selectedTime === slot.time ? "default" : "outline"}
-                    className={!slot.available ? "opacity-50 cursor-not-allowed" : ""}
-                    disabled={!slot.available}
-                    onClick={() => setSelectedTime(slot.time)}
-                  >
-                    {slot.time}
-                  </Button>
-                ))}
-              </div>
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 mb-4 text-primary">
+                    <Clock className="h-5 w-5" />
+                    <h3 className="text-lg font-medium">Horarios disponibles</h3>
+                  </div>
+                  
+                  {renderTimeSlotGroup("Mañana", groupedTimeSlots.morning)}
+                  {renderTimeSlotGroup("Tarde", groupedTimeSlots.afternoon)}
+                  {renderTimeSlotGroup("Noche", groupedTimeSlots.evening)}
+                  
+                  {selectedTime && (
+                    <div className="mt-4 pt-4 border-t text-center">
+                      <span className="text-sm font-medium">Hora seleccionada: </span>
+                      <span className="text-primary font-bold">{selectedTime}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             ) : (
               <Card>
                 <CardContent className="py-4 text-center">
