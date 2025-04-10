@@ -137,6 +137,42 @@ export type Database = {
         }
         Relationships: []
       }
+      customization_settings: {
+        Row: {
+          booking_instructions: string
+          business_name: string
+          created_at: string
+          hero_image_url: string
+          id: string
+          primary_color: string | null
+          updated_at: string
+          welcome_subtitle: string
+          welcome_title: string
+        }
+        Insert: {
+          booking_instructions?: string
+          business_name?: string
+          created_at?: string
+          hero_image_url?: string
+          id?: string
+          primary_color?: string | null
+          updated_at?: string
+          welcome_subtitle?: string
+          welcome_title?: string
+        }
+        Update: {
+          booking_instructions?: string
+          business_name?: string
+          created_at?: string
+          hero_image_url?: string
+          id?: string
+          primary_color?: string | null
+          updated_at?: string
+          welcome_subtitle?: string
+          welcome_title?: string
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           created_at: string
