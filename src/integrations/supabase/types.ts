@@ -71,6 +71,51 @@ export type Database = {
           },
         ]
       }
+      blocked_slots: {
+        Row: {
+          created_at: string | null
+          date: string
+          end_time: string | null
+          id: string
+          start_time: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          end_time?: string | null
+          id?: string
+          start_time?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          end_time?: string | null
+          id?: string
+          start_time?: string | null
+        }
+        Relationships: []
+      }
+      booking_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          max_months_ahead: number | null
+          same_day_policy: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          max_months_ahead?: number | null
+          same_day_policy?: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          max_months_ahead?: number | null
+          same_day_policy?: string
+        }
+        Relationships: []
+      }
       business_hours: {
         Row: {
           day_of_week: number

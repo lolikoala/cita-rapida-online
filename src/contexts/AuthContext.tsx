@@ -1,103 +1,79 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
-import { User } from "@/types";
-import { signInWithCredentials, getCurrentUser } from "@/services/authService";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { loginWithCredentials, getCurrentUser, AdminUser } from "@/services/authService";
+import { toast } from "sonner";
 
-type AuthContextType = {
-  user: User | null;
-  isLoading: boolean;
-  login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+interface AuthContextType {
+  currentUser: AdminUser | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
+}
+
+const initialContext: AuthContextType = {
+  currentUser: null,
+  isAuthenticated: false,
+  isLoading: true,
+  login: async () => false,
+  logout: () => {},
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>(initialContext);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const { toast } = useToast();
-  const navigate = useNavigate();
+export const useAuth = () => useContext(AuthContext);
 
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check for stored user on mount
   useEffect(() => {
-    // Check for user in localStorage on initial load
-    const initializeAuth = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-        }
-      } catch (error) {
-        console.error("Error initializing auth:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initializeAuth();
+    const storedUser = getCurrentUser();
+    if (storedUser) {
+      setCurrentUser(storedUser);
+    }
+    setIsLoading(false);
   }, []);
 
-  const login = async (username: string, password: string) => {
+  // Login function
+  const login = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const data = await signInWithCredentials(username, password);
+      const user = await loginWithCredentials(username, password);
       
-      if (data) {
-        const user = { 
-          id: data.id, 
-          username: data.username 
-        };
-        setUser(user);
-        localStorage.setItem("user", JSON.stringify(user));
-        toast({
-          title: "Login successful",
-          variant: "default",
-        });
-        navigate("/admin/dashboard");
+      if (user) {
+        setCurrentUser(user);
+        localStorage.setItem('admin_user', JSON.stringify(user));
+        toast.success(`Bienvenido, ${user.username}`);
+        return true;
+      } else {
+        toast.error("Credenciales incorrectas");
+        return false;
       }
-    } catch (error: any) {
-      console.error("Login error:", error);
-      
-      toast({
-        title: "Credenciales incorrectas",
-        description: "Por favor revise su usuario y contraseña",
-        variant: "destructive",
-      });
+    } catch (error) {
+      console.error("Error de autenticación:", error);
+      toast.error("Error al iniciar sesión");
+      return false;
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Logout function
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
-    toast({
-      title: "Logged out successfully",
-    });
-    navigate("/login");
+    localStorage.removeItem('admin_user');
+    setCurrentUser(null);
+    toast.info("Has cerrado sesión");
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        login,
-        logout,
-        isAuthenticated: !!user,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const value = {
+    currentUser,
+    isAuthenticated: !!currentUser,
+    isLoading,
+    login,
+    logout,
+  };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -105,9 +105,32 @@ const CheckAppointment = () => {
     }
   };
 
+  // Responsive card layout for small screens
+  const renderAppointmentCard = (appointment: Appointment) => (
+    <Card key={appointment.id} className="mb-4">
+      <CardContent className="pt-6">
+        <p className="font-semibold">{appointment.service?.name || "Servicio no disponible"}</p>
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <div>
+            <p className="text-sm text-muted-foreground">Fecha:</p>
+            <p>{formatDate(appointment.date)}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Hora:</p>
+            <p>{appointment.time}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Estado:</p>
+            <div className="mt-1">{getStatusBadge(appointment.status)}</div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-8">
-      <Card>
+    <div className="p-4">
+      <Card className="max-w-4xl mx-auto">
         <CardHeader>
           <CardTitle>Consultar Estado de Citas</CardTitle>
           <CardDescription>
@@ -140,29 +163,39 @@ const CheckAppointment = () => {
           {hasSearched && (
             <div className="mt-8">
               {appointments.length > 0 ? (
-                <Table>
-                  <TableCaption>Listado de tus citas</TableCaption>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Servicio</TableHead>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Hora</TableHead>
-                      <TableHead>Estado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {appointments.map((appointment) => (
-                      <TableRow key={appointment.id}>
-                        <TableCell className="font-medium">
-                          {appointment.service?.name || "Servicio no disponible"}
-                        </TableCell>
-                        <TableCell>{formatDate(appointment.date)}</TableCell>
-                        <TableCell>{appointment.time}</TableCell>
-                        <TableCell>{getStatusBadge(appointment.status)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <>
+                  {/* Mostrar cards en móvil */}
+                  <div className="block sm:hidden">
+                    {appointments.map(renderAppointmentCard)}
+                  </div>
+                  
+                  {/* Mostrar tabla en desktop */}
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableCaption>Listado de tus citas</TableCaption>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Servicio</TableHead>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead>Hora</TableHead>
+                          <TableHead>Estado</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {appointments.map((appointment) => (
+                          <TableRow key={appointment.id}>
+                            <TableCell className="font-medium">
+                              {appointment.service?.name || "Servicio no disponible"}
+                            </TableCell>
+                            <TableCell>{formatDate(appointment.date)}</TableCell>
+                            <TableCell>{appointment.time}</TableCell>
+                            <TableCell>{getStatusBadge(appointment.status)}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               ) : (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">

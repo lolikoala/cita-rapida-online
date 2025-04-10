@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { signUpWithEmail } from "@/services/authService";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -40,8 +39,8 @@ const Register = () => {
     setIsSubmitting(true);
     
     try {
-      await signUpWithEmail(email, password);
-      toast.success("Usuario creado con éxito. Por favor, verifica tu correo electrónico.");
+      // Función para registrar deshabilitada - usando solo admin/admin
+      toast.info("En esta versión solo puedes usar admin/admin para iniciar sesión");
       navigate("/login");
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -53,7 +52,7 @@ const Register = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[70vh]">
         <div className="text-center">
           <p>Cargando...</p>
         </div>
@@ -62,8 +61,8 @@ const Register = () => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/40">
-      <Card className="w-[400px] mx-auto">
+    <div className="flex items-center justify-center min-h-[70vh] p-4">
+      <Card className="w-full max-w-[400px] mx-auto">
         <CardHeader>
           <CardTitle className="text-2xl">Registrar Administrador</CardTitle>
           <CardDescription>
@@ -73,13 +72,13 @@ const Register = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Usuario</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="correo@ejemplo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>
@@ -109,9 +108,13 @@ const Register = () => {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2">
-            <Button className="w-full" type="submit" disabled={isSubmitting}>
+            <Button className="w-full" type="submit" disabled={isSubmitting || true}>
               {isSubmitting ? "Creando cuenta..." : "Crear cuenta"}
             </Button>
+            <p className="text-sm text-center text-muted-foreground mt-2">
+              Funcionalidad deshabilitada en esta versión.
+              <br />Use admin/admin para iniciar sesión.
+            </p>
             <Button
               variant="link"
               type="button"

@@ -38,10 +38,10 @@ const Home = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <section className="text-center mb-16">
-        <h1 className="text-4xl font-bold mb-4">Reserva tu cita en minutos</h1>
-        <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
+    <div className="space-y-12">
+      <section className="text-center">
+        <h1 className="text-3xl sm:text-4xl font-bold mb-4">Reserva tu cita en minutos</h1>
+        <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto mb-8">
           Selecciona el servicio que necesitas, elige una fecha y hora disponible, y reserva tu cita de forma rápida y sencilla.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -67,7 +67,7 @@ const Home = () => {
         {isLoading ? (
           <div className="text-center">Cargando servicios...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {services.map((service) => (
               <Card key={service.id} className="h-full flex flex-col">
                 <CardHeader>

@@ -27,7 +27,7 @@ const Login = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[70vh]">
         <div className="text-center">
           <p>Cargando...</p>
         </div>
@@ -36,8 +36,8 @@ const Login = () => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-muted/40">
-      <Card className="w-[350px] mx-auto">
+    <div className="flex items-center justify-center min-h-[70vh] p-4">
+      <Card className="w-full max-w-[350px] mx-auto">
         <CardHeader>
           <CardTitle className="text-2xl">Admin Login</CardTitle>
           <CardDescription>
