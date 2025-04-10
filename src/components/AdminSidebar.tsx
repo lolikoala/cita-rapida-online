@@ -1,6 +1,6 @@
 
 import { NavLink } from "react-router-dom";
-import { CalendarDays, Clock, ShoppingBag, Users, LogOut } from "lucide-react";
+import { CalendarDays, Clock, ShoppingBag, Users, LogOut, Palette } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +19,10 @@ const AdminSidebar = () => {
       icon: <Clock className="h-5 w-5" />,
     },
     {
-  title: "Bloqueos",
-  path: "/admin/bloqueos",
-  icon: <CalendarDays className="h-5 w-5" />,
-},
-
+      title: "Bloqueos",
+      path: "/admin/bloqueos",
+      icon: <CalendarDays className="h-5 w-5" />,
+    },
     {
       title: "Servicios",
       path: "/admin/services",
@@ -35,10 +34,15 @@ const AdminSidebar = () => {
       icon: <Users className="h-5 w-5" />,
     },
     {
-  title: "Configuración de citas",
-  path: "/admin/configuracion-citas",
-  icon: <Clock className="h-5 w-5" />,
-}
+      title: "Configuración de citas",
+      path: "/admin/configuracion-citas",
+      icon: <Clock className="h-5 w-5" />,
+    },
+    {
+      title: "Personalización",
+      path: "/admin/personalizacion",
+      icon: <Palette className="h-5 w-5" />,
+    }
   ];
 
   return (

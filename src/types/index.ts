@@ -42,3 +42,15 @@ export type BlockedSlot = {
   start_time?: string;
   end_time?: string;
 };
+
+export type CustomizationSettings = {
+  id: string;
+  business_name: string;
+  welcome_title: string;
+  welcome_subtitle: string;
+  booking_instructions: string;
+  hero_image_url: string;
+  primary_color?: string;
+  created_at: string;
+  updated_at: string;
+};

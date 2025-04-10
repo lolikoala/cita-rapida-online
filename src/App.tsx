@@ -1,4 +1,4 @@
-  
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +10,7 @@ import Layout from "@/components/Layout";
 import AdminLayout from "@/components/AdminLayout";
 import ConfiguracionCitas from "@/pages/admin/ConfiguracionCitas";
 import BloqueosHorarios from "@/pages/admin/BloqueosHorarios";
+import Personalizacion from "@/pages/admin/Personalizacion";
 
 
 // Public pages
@@ -49,14 +50,14 @@ const App = () => (
             <AdminLayout />
             </ProtectedRoute>
           }>
-  <Route path="dashboard" element={<Dashboard />} />
-  <Route path="business-hours" element={<BusinessHoursManagement />} />
-  <Route path="bloqueos" element={<BloqueosHorarios />} />
-  <Route path="services" element={<ServicesManagement />} />
-  <Route path="appointments" element={<AppointmentsManagement />} />
-  <Route path="configuracion-citas" element={<ConfiguracionCitas />} />
-</Route>
-
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="business-hours" element={<BusinessHoursManagement />} />
+            <Route path="bloqueos" element={<BloqueosHorarios />} />
+            <Route path="services" element={<ServicesManagement />} />
+            <Route path="appointments" element={<AppointmentsManagement />} />
+            <Route path="configuracion-citas" element={<ConfiguracionCitas />} />
+            <Route path="personalizacion" element={<Personalizacion />} />
+          </Route>
             
             {/* 404 Not Found */}
             <Route path="*" element={<NotFound />} />
