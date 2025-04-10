@@ -8,14 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { Clock, Sun, Sunset, Moon } from "lucide-react";
+import { Sun, Sunset } from "lucide-react";
 
 import {
   getServices,
-  getServiceById,
   getBusinessHours,
   getAvailableTimeSlots,
   createAppointment,
@@ -41,7 +39,7 @@ const BookAppointment = () => {
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
-  const [selectedPeriod, setSelectedPeriod] = useState<'morning' | 'afternoon' | 'evening'>('morning');
+  const [selectedPeriod, setSelectedPeriod] = useState<'morning' | 'afternoon'>('morning');
 
   useEffect(() => {
     const fetchPolicy = async () => {
@@ -142,6 +140,10 @@ const BookAppointment = () => {
     return max;
   };
 
+  const isDateAvailable = (date: Date) => {
+    return availableDates.some((availableDate) => isSameDay(availableDate, date));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -173,73 +175,21 @@ const BookAppointment = () => {
       setIsLoading(false);
     }
   };
-
-  const isDateAvailable = (date: Date) => {
-    return availableDates.some((availableDate) => isSameDay(availableDate, date));
-  };
-
-  const getTimeSlotsByPeriod = () => {
-    const morningSlots: TimeSlot[] = [];
-    const afternoonSlots: TimeSlot[] = [];
-    const eveningSlots: TimeSlot[] = [];
-
-    availableTimeSlots.forEach(slot => {
-      const hour = parseInt(slot.time.split(':')[0]);
-      
-      if (hour < 12) {
-        morningSlots.push(slot);
-      } else if (hour < 17) {
-        afternoonSlots.push(slot);
-      } else {
-        eveningSlots.push(slot);
-      }
-    });
-
-    return {
-      morning: morningSlots,
-      afternoon: afternoonSlots,
-      evening: eveningSlots
-    };
-  };
-
-  const groupedTimeSlots = getTimeSlotsByPeriod();
-
-  const renderTimeSlotGroup = (slots: TimeSlot[]) => {
-    if (slots.length === 0) return (
-      <div className="text-center py-4 text-muted-foreground">
-        No hay horarios disponibles en este periodo
-      </div>
-    );
-    
-    return (
-      <div className="grid grid-cols-4 gap-2">
-        {slots.map((slot) => (
-          <div
-            key={slot.time}
-            className={`text-center rounded-md p-2 cursor-pointer transition-colors ${
-              selectedTime === slot.time
-                ? "bg-primary text-primary-foreground"
-                : "bg-accent hover:bg-accent/80"
-            } ${!slot.available ? "opacity-50 cursor-not-allowed" : ""}`}
-            onClick={() => {
-              if (slot.available) {
-                setSelectedTime(slot.time);
-              }
-            }}
-          >
-            {slot.time}
-          </div>
-        ))}
-      </div>
-    );
-  };
+  const filteredSlots = availableTimeSlots.filter((slot) => {
+    const hour = parseInt(slot.time.split(":")[0], 10);
+    if (selectedPeriod === "morning") {
+      return hour < 14;
+    } else {
+      return hour >= 14;
+    }
+  });
 
   return (
     <div className="container mx-auto max-w-4xl px-4 py-8">
       <h1 className="text-3xl font-bold mb-8 text-center">Reservar Cita</h1>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Paso 1: Servicio */}
+        {/* Paso 1: Selección de servicio */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">1. Selecciona el servicio</h2>
           <div>
@@ -264,7 +214,7 @@ const BookAppointment = () => {
           </div>
         </div>
 
-        {/* Paso 2: Fecha */}
+        {/* Paso 2: Selección de fecha */}
         {selectedServiceId && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">2. Selecciona una fecha</h2>
@@ -282,12 +232,13 @@ const BookAppointment = () => {
                   selected: "bg-primary text-primary-foreground",
                   disabled: "opacity-50 cursor-not-allowed",
                 }}
+                weekStartsOn={1}
               />
             </div>
           </div>
         )}
 
-        {/* Paso 3: Hora - Diseño mejorado y más intuitivo */}
+        {/* Paso 3: Selección de hora */}
         {selectedDate && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">3. Selecciona una hora</h2>
@@ -295,85 +246,52 @@ const BookAppointment = () => {
               {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
             </p>
 
-            {availableTimeSlots.length > 0 ? (
-              <Card className="overflow-hidden">
-                <div className="flex border-b">
-                  <button
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant={selectedPeriod === "morning" ? "default" : "outline"}
+                onClick={() => setSelectedPeriod("morning")}
+              >
+                <Sun className="mr-2 h-4 w-4" />
+                Mañana
+              </Button>
+              <Button
+                type="button"
+                variant={selectedPeriod === "afternoon" ? "default" : "outline"}
+                onClick={() => setSelectedPeriod("afternoon")}
+              >
+                <Sunset className="mr-2 h-4 w-4" />
+                Tarde
+              </Button>
+            </div>
+
+            {filteredSlots.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {filteredSlots.map((slot) => (
+                  <Button
+                    key={slot.time}
                     type="button"
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors ${
-                      selectedPeriod === 'morning' 
-                        ? 'bg-accent text-accent-foreground' 
-                        : 'hover:bg-muted/50'
-                    }`}
-                    onClick={() => setSelectedPeriod('morning')}
+                    variant={selectedTime === slot.time ? "default" : "outline"}
+                    className={!slot.available ? "opacity-50 cursor-not-allowed" : ""}
+                    disabled={!slot.available}
+                    onClick={() => setSelectedTime(slot.time)}
                   >
-                    <Sun className="h-4 w-4" />
-                    <span>Mañana</span>
-                    <span className="ml-1 text-xs rounded-full bg-muted px-2 py-0.5">
-                      {groupedTimeSlots.morning.filter(s => s.available).length}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors ${
-                      selectedPeriod === 'afternoon' 
-                        ? 'bg-accent text-accent-foreground' 
-                        : 'hover:bg-muted/50'
-                    }`}
-                    onClick={() => setSelectedPeriod('afternoon')}
-                  >
-                    <Sunset className="h-4 w-4" />
-                    <span>Tarde</span>
-                    <span className="ml-1 text-xs rounded-full bg-muted px-2 py-0.5">
-                      {groupedTimeSlots.afternoon.filter(s => s.available).length}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors ${
-                      selectedPeriod === 'evening' 
-                        ? 'bg-accent text-accent-foreground' 
-                        : 'hover:bg-muted/50'
-                    }`}
-                    onClick={() => setSelectedPeriod('evening')}
-                  >
-                    <Moon className="h-4 w-4" />
-                    <span>Noche</span>
-                    <span className="ml-1 text-xs rounded-full bg-muted px-2 py-0.5">
-                      {groupedTimeSlots.evening.filter(s => s.available).length}
-                    </span>
-                  </button>
-                </div>
-                <CardContent className="pt-6">
-                  {renderTimeSlotGroup(
-                    selectedPeriod === 'morning' 
-                      ? groupedTimeSlots.morning 
-                      : selectedPeriod === 'afternoon'
-                        ? groupedTimeSlots.afternoon
-                        : groupedTimeSlots.evening
-                  )}
-                  
-                  {selectedTime && (
-                    <div className="mt-4 pt-4 border-t text-center">
-                      <span className="text-sm font-medium">Hora seleccionada: </span>
-                      <span className="text-primary font-bold">{selectedTime}</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    {slot.time}
+                  </Button>
+                ))}
+              </div>
             ) : (
               <Card>
                 <CardContent className="py-4 text-center">
                   <p className="text-muted-foreground">
-                    No hay horarios disponibles para esta fecha
+                    No hay horarios disponibles en este periodo
                   </p>
                 </CardContent>
               </Card>
             )}
           </div>
         )}
-
-        {/* Paso 4: Datos de contacto */}
+        {/* Paso 4: Información de contacto */}
         {selectedTime && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">4. Tus datos de contacto</h2>
