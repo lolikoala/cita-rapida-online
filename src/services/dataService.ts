@@ -1,12 +1,13 @@
 import { Appointment, BusinessHour, Service, TimeSlot } from "@/types";
 import { format, addMinutes, parse, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Database } from "@/integrations/supabase/types";
 
 type DbService = Database['public']['Tables']['services']['Row'];
 type DbBusinessHour = Database['public']['Tables']['business_hours']['Row'];
 type DbAppointment = Database['public']['Tables']['appointments']['Row'];
+type DbBlockedSlot = Database['public']['Tables']['blocked_slots']['Row'];
 
 const mapDbServiceToService = (dbService: DbService): Service => ({
   id: dbService.id,
@@ -287,6 +288,7 @@ export const updateAppointmentStatus = async (
     status: data.status as 'pending' | 'accepted' | 'rejected'
   };
 };
+
 // Time Slots
 export const getAvailableTimeSlots = async (
   date: string,
@@ -307,7 +309,7 @@ export const getAvailableTimeSlots = async (
 
   const businessHours = hoursRes.data || [];
   const appointments = appointmentsRes.data || [];
-  const blockedSlots = blockedRes.data || [];
+  const blockedSlots = blockedRes.data || [] as DbBlockedSlot[];
 
   const dayOfWeek = new Date(date).getDay();
   const todayHours = businessHours.filter((h) => h.day_of_week === dayOfWeek);

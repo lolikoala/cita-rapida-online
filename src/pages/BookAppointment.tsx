@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { format, isAfter, addDays, isSameDay } from "date-fns";
@@ -157,6 +158,7 @@ const BookAppointment = () => {
         phone,
         date: formattedDate,
         time: selectedTime,
+        status: "pending" // Adding the required status property
       });
 
       toast.success("¡Cita solicitada con éxito! Recibirás confirmación pronto.");
