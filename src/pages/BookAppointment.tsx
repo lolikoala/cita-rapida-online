@@ -11,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { Clock } from "lucide-react";
+import { Clock, Sun, Sunset, Moon } from "lucide-react";
 
 import {
   getServices,
@@ -41,6 +41,7 @@ const BookAppointment = () => {
   const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
+  const [selectedPeriod, setSelectedPeriod] = useState<'morning' | 'afternoon' | 'evening'>('morning');
 
   useEffect(() => {
     const fetchPolicy = async () => {
@@ -160,7 +161,7 @@ const BookAppointment = () => {
         phone,
         date: formattedDate,
         time: selectedTime,
-        status: "pending" // Adding the required status property
+        status: "pending"
       });
 
       toast.success("¡Cita solicitada con éxito! Recibirás confirmación pronto.");
@@ -203,31 +204,32 @@ const BookAppointment = () => {
 
   const groupedTimeSlots = getTimeSlotsByPeriod();
 
-  const renderTimeSlotGroup = (title: string, slots: TimeSlot[]) => {
-    if (slots.length === 0) return null;
+  const renderTimeSlotGroup = (slots: TimeSlot[]) => {
+    if (slots.length === 0) return (
+      <div className="text-center py-4 text-muted-foreground">
+        No hay horarios disponibles en este periodo
+      </div>
+    );
     
     return (
-      <div className="mb-4">
-        <h3 className="text-md font-medium mb-2">{title}</h3>
-        <div className="grid grid-cols-4 gap-2">
-          {slots.map((slot) => (
-            <div
-              key={slot.time}
-              className={`text-center rounded-md p-2 cursor-pointer transition-colors ${
-                selectedTime === slot.time
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-accent hover:bg-accent/80"
-              } ${!slot.available ? "opacity-50 cursor-not-allowed" : ""}`}
-              onClick={() => {
-                if (slot.available) {
-                  setSelectedTime(slot.time);
-                }
-              }}
-            >
-              {slot.time}
-            </div>
-          ))}
-        </div>
+      <div className="grid grid-cols-4 gap-2">
+        {slots.map((slot) => (
+          <div
+            key={slot.time}
+            className={`text-center rounded-md p-2 cursor-pointer transition-colors ${
+              selectedTime === slot.time
+                ? "bg-primary text-primary-foreground"
+                : "bg-accent hover:bg-accent/80"
+            } ${!slot.available ? "opacity-50 cursor-not-allowed" : ""}`}
+            onClick={() => {
+              if (slot.available) {
+                setSelectedTime(slot.time);
+              }
+            }}
+          >
+            {slot.time}
+          </div>
+        ))}
       </div>
     );
   };
@@ -285,7 +287,7 @@ const BookAppointment = () => {
           </div>
         )}
 
-        {/* Paso 3: Hora - Nuevo diseño más intuitivo */}
+        {/* Paso 3: Hora - Diseño mejorado y más intuitivo */}
         {selectedDate && (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">3. Selecciona una hora</h2>
@@ -294,16 +296,62 @@ const BookAppointment = () => {
             </p>
 
             {availableTimeSlots.length > 0 ? (
-              <Card>
+              <Card className="overflow-hidden">
+                <div className="flex border-b">
+                  <button
+                    type="button"
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors ${
+                      selectedPeriod === 'morning' 
+                        ? 'bg-accent text-accent-foreground' 
+                        : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => setSelectedPeriod('morning')}
+                  >
+                    <Sun className="h-4 w-4" />
+                    <span>Mañana</span>
+                    <span className="ml-1 text-xs rounded-full bg-muted px-2 py-0.5">
+                      {groupedTimeSlots.morning.filter(s => s.available).length}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors ${
+                      selectedPeriod === 'afternoon' 
+                        ? 'bg-accent text-accent-foreground' 
+                        : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => setSelectedPeriod('afternoon')}
+                  >
+                    <Sunset className="h-4 w-4" />
+                    <span>Tarde</span>
+                    <span className="ml-1 text-xs rounded-full bg-muted px-2 py-0.5">
+                      {groupedTimeSlots.afternoon.filter(s => s.available).length}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 font-medium transition-colors ${
+                      selectedPeriod === 'evening' 
+                        ? 'bg-accent text-accent-foreground' 
+                        : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => setSelectedPeriod('evening')}
+                  >
+                    <Moon className="h-4 w-4" />
+                    <span>Noche</span>
+                    <span className="ml-1 text-xs rounded-full bg-muted px-2 py-0.5">
+                      {groupedTimeSlots.evening.filter(s => s.available).length}
+                    </span>
+                  </button>
+                </div>
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-2 mb-4 text-primary">
-                    <Clock className="h-5 w-5" />
-                    <h3 className="text-lg font-medium">Horarios disponibles</h3>
-                  </div>
-                  
-                  {renderTimeSlotGroup("Mañana", groupedTimeSlots.morning)}
-                  {renderTimeSlotGroup("Tarde", groupedTimeSlots.afternoon)}
-                  {renderTimeSlotGroup("Noche", groupedTimeSlots.evening)}
+                  {renderTimeSlotGroup(
+                    selectedPeriod === 'morning' 
+                      ? groupedTimeSlots.morning 
+                      : selectedPeriod === 'afternoon'
+                        ? groupedTimeSlots.afternoon
+                        : groupedTimeSlots.evening
+                  )}
                   
                   {selectedTime && (
                     <div className="mt-4 pt-4 border-t text-center">
