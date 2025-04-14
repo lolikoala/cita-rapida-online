@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarDays, ArrowRight, Clock, UserPlus } from "lucide-react";
+import { CalendarDays, ArrowRight, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getServices } from "@/services/dataService";
 import { Service, CustomizationSettings } from "@/types";
@@ -74,7 +74,7 @@ const Home = () => {
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
             backgroundImage: `url(${heroImage})`,
-            opacity: 1,  // Set full opacity
+            opacity: 1,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
@@ -99,9 +99,13 @@ const Home = () => {
               Consultar Cita
             </Button>
             {!isAuthenticated && (
-              <Button variant="secondary" size="lg" onClick={() => navigate("/login")} className="gap-2">
-                <UserPlus className="h-5 w-5" />
-                Área de Administrador
+              <Button 
+                variant="secondary" 
+                size="lg" 
+                onClick={() => navigate("/login")} 
+                className="gap-2"
+              >
+                Iniciar Sesión
               </Button>
             )}
           </div>
