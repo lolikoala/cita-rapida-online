@@ -65,20 +65,13 @@ const VoiceInputButton = ({ services, onDataExtracted }: VoiceInputButtonProps) 
   const parseSpeech = (text: string) => {
     const data: any = {};
 
-    // Teléfono (buscar cualquier grupo de 9 dígitos)
-    const phoneMatch = text.match(/\b(\d{9})\b/);
-    if (phoneMatch) {
-      data.phone = phoneMatch[1];
-    }
+    // Nombre (buscar "a X" o "para X")
+    const nameMatch = text.match(/(?:a|para)\s+(\w+)/);
+    if (nameMatch) data.name = nameMatch[1];
 
-    // Nombre: buscar "a X", "para X" (evitando palabras como "una cita para")
-    const nombreMatch = text.match(/(?:agendar a|cita para|para|a)\s+([a-záéíóúñ]+)/i);
-    if (nombreMatch) {
-      const nombreDetectado = nombreMatch[1];
-      if (!['una', 'la', 'cita'].includes(nombreDetectado)) {
-        data.name = nombreDetectado.charAt(0).toUpperCase() + nombreDetectado.slice(1);
-      }
-    }
+    // Teléfono (9 dígitos seguidos)
+    const phoneMatch = text.match(/(\d{9})/);
+    if (phoneMatch) data.phone = phoneMatch[1];
 
     // Fecha
     const dayMatch = text.match(/(lunes|martes|miércoles|jueves|viernes|sábado|domingo|mañana|pasado mañana|hoy|\d{1,2} de \w+)/);
