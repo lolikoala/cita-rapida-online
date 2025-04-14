@@ -289,6 +289,13 @@ export const updateAppointment = async (
   };
 };
 
+export const updateAppointmentStatus = async (
+  id: string,
+  status: "accepted" | "rejected"
+): Promise<Appointment | undefined> => {
+  return updateAppointment(id, { status });
+};
+
 // Time Slots
 export const getAvailableTimeSlots = async (
   date: string,

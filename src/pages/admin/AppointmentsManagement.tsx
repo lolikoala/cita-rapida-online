@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -53,6 +52,7 @@ import {
   updateAppointment,
 } from "@/services/dataService";
 import { Appointment, Service } from "@/types";
+import VoiceInputButton from "@/components/admin/VoiceInputButton";
 
 const AppointmentsManagement = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -68,7 +68,6 @@ const AppointmentsManagement = () => {
     service_id: "",
   });
   
-  // Edit appointment state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Partial<Appointment> & { id: string }>({
     id: "",
@@ -160,13 +159,12 @@ const AppointmentsManagement = () => {
       await createAppointment({ ...newAppointment, status: "accepted" });
       toast.success("Cita creada correctamente");
       setNewAppointment({ name: "", phone: "", date: "", time: "", service_id: "" });
-      await fetchAppointmentsAndServices(); // Refrescar lista después de crear
+      await fetchAppointmentsAndServices();
     } catch {
       toast.error("Error al crear la cita");
     }
   };
 
-  // New function to handle opening the edit dialog
   const handleOpenEditDialog = (appointment: Appointment) => {
     setEditingAppointment({
       id: appointment.id,
@@ -180,7 +178,6 @@ const AppointmentsManagement = () => {
     setIsEditDialogOpen(true);
   };
 
-  // New function to handle saving edited appointment
   const handleSaveEdit = async () => {
     try {
       if (!editingAppointment.name || 
@@ -203,7 +200,6 @@ const AppointmentsManagement = () => {
         }
       );
 
-      // Update local state
       setAppointments(prev =>
         prev.map(a => a.id === editingAppointment.id ? { 
           ...a, 
@@ -245,6 +241,23 @@ const AppointmentsManagement = () => {
     }
   };
 
+  const handleVoiceData = (data: {
+    name?: string;
+    phone?: string;
+    date?: string;
+    time?: string;
+    service_id?: string;
+  }) => {
+    setNewAppointment(prev => ({
+      ...prev,
+      name: data.name || prev.name,
+      phone: data.phone || prev.phone,
+      date: data.date || prev.date,
+      time: data.time || prev.time,
+      service_id: data.service_id || prev.service_id,
+    }));
+  };
+
   const filteredAppointments = statusFilter === "all"
     ? appointments
     : appointments.filter(a => a.status === statusFilter);
@@ -261,7 +274,7 @@ const AppointmentsManagement = () => {
         )}
       </div>
 
-      <Card>
+      <Card className="relative">
         <CardHeader>
           <CardTitle>Crear nueva cita</CardTitle>
           <CardDescription>Se marcará como confirmada automáticamente</CardDescription>
@@ -284,6 +297,11 @@ const AppointmentsManagement = () => {
             Crear
           </Button>
         </CardContent>
+        
+        <VoiceInputButton 
+          services={services} 
+          onDataExtracted={handleVoiceData} 
+        />
       </Card>
 
       <Card>
@@ -395,7 +413,6 @@ const AppointmentsManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Appointment Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
