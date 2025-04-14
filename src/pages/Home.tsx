@@ -71,10 +71,15 @@ const Home = () => {
     <div className="space-y-12">
       <section className="relative">
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-20 -z-10"
-          style={{ backgroundImage: `url(${heroImage})` }}
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ 
+            backgroundImage: `url(${heroImage})`,
+            opacity: 1,  // Set full opacity
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
         ></div>
-        <div className="text-center py-12">
+        <div className="text-center py-12 relative z-10">
           <h1 className="text-3xl sm:text-4xl font-bold mb-4">{welcomeTitle}</h1>
           <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto mb-8">
             {welcomeSubtitle}
