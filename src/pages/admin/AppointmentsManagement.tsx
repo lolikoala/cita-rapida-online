@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { CheckIcon, XIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { CheckIcon, XIcon, PlusIcon, Trash2Icon, PencilIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -37,11 +38,19 @@ import { Input } from "@/components/ui/input";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   getAppointments,
   getServices,
   updateAppointmentStatus,
   createAppointment,
   deleteAppointments,
+  updateAppointment,
 } from "@/services/dataService";
 import { Appointment, Service } from "@/types";
 
@@ -52,6 +61,17 @@ const AppointmentsManagement = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
   const [newAppointment, setNewAppointment] = useState({
+    name: "",
+    phone: "",
+    date: "",
+    time: "",
+    service_id: "",
+  });
+  
+  // Edit appointment state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<Partial<Appointment> & { id: string }>({
+    id: "",
     name: "",
     phone: "",
     date: "",
@@ -143,6 +163,64 @@ const AppointmentsManagement = () => {
       await fetchAppointmentsAndServices(); // Refrescar lista después de crear
     } catch {
       toast.error("Error al crear la cita");
+    }
+  };
+
+  // New function to handle opening the edit dialog
+  const handleOpenEditDialog = (appointment: Appointment) => {
+    setEditingAppointment({
+      id: appointment.id,
+      name: appointment.name,
+      phone: appointment.phone,
+      date: appointment.date,
+      time: appointment.time,
+      service_id: appointment.service_id,
+      status: appointment.status
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  // New function to handle saving edited appointment
+  const handleSaveEdit = async () => {
+    try {
+      if (!editingAppointment.name || 
+          !editingAppointment.phone || 
+          !editingAppointment.date || 
+          !editingAppointment.time || 
+          !editingAppointment.service_id) {
+        toast.error("Completa todos los campos");
+        return;
+      }
+
+      await updateAppointment(
+        editingAppointment.id, 
+        {
+          name: editingAppointment.name,
+          phone: editingAppointment.phone,
+          date: editingAppointment.date,
+          time: editingAppointment.time,
+          service_id: editingAppointment.service_id
+        }
+      );
+
+      // Update local state
+      setAppointments(prev =>
+        prev.map(a => a.id === editingAppointment.id ? { 
+          ...a, 
+          name: editingAppointment.name || a.name,
+          phone: editingAppointment.phone || a.phone,
+          date: editingAppointment.date || a.date,
+          time: editingAppointment.time || a.time,
+          service_id: editingAppointment.service_id || a.service_id,
+          service: services.find(s => s.id === editingAppointment.service_id) || a.service
+        } : a)
+      );
+
+      setIsEditDialogOpen(false);
+      toast.success("Cita actualizada correctamente");
+    } catch (error) {
+      console.error("Error updating appointment:", error);
+      toast.error("Error al actualizar la cita");
     }
   };
 
@@ -270,6 +348,19 @@ const AppointmentsManagement = () => {
                     <TableCell>{getStatusBadge(appointment.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="icon" variant="outline" onClick={() => handleOpenEditDialog(appointment)}>
+                                <PencilIcon className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Editar cita</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        
                         {appointment.status === "pending" && (
                           <>
                             <Button size="icon" onClick={() => handleUpdateStatus(appointment.id, "accepted")}>
@@ -303,6 +394,71 @@ const AppointmentsManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Appointment Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Cita</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="edit-name">Nombre</Label>
+              <Input
+                id="edit-name"
+                value={editingAppointment.name}
+                onChange={(e) => setEditingAppointment({ ...editingAppointment, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-phone">Teléfono</Label>
+              <Input
+                id="edit-phone"
+                value={editingAppointment.phone}
+                onChange={(e) => setEditingAppointment({ ...editingAppointment, phone: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-date">Fecha</Label>
+              <Input
+                id="edit-date"
+                type="date"
+                value={editingAppointment.date}
+                onChange={(e) => setEditingAppointment({ ...editingAppointment, date: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-time">Hora</Label>
+              <Input
+                id="edit-time"
+                type="time"
+                value={editingAppointment.time}
+                onChange={(e) => setEditingAppointment({ ...editingAppointment, time: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-service">Servicio</Label>
+              <Select 
+                value={editingAppointment.service_id} 
+                onValueChange={(value) => setEditingAppointment({ ...editingAppointment, service_id: value })}
+              >
+                <SelectTrigger id="edit-service">
+                  <SelectValue placeholder="Seleccionar servicio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.map(service => (
+                    <SelectItem key={service.id} value={service.id}>{service.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveEdit}>Guardar cambios</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

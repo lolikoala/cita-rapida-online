@@ -267,19 +267,19 @@ export const getAppointmentsByPhone = async (phone: string): Promise<Appointment
   });
 };
 
-export const updateAppointmentStatus = async (
+export const updateAppointment = async (
   id: string,
-  status: "pending" | "accepted" | "rejected"
+  appointmentData: Partial<Appointment>
 ): Promise<Appointment | undefined> => {
   const { data, error } = await supabase
     .from('appointments')
-    .update({ status })
+    .update(appointmentData)
     .eq('id', id)
     .select()
     .single();
 
   if (error) {
-    console.error("Error updating appointment status:", error);
+    console.error("Error updating appointment:", error);
     throw error;
   }
 
