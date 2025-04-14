@@ -144,13 +144,6 @@ const BookAppointment = () => {
     return availableDates.some((availableDate) => isSameDay(availableDate, date));
   };
 
-  const getDateModifiers = () => {
-    const modifiers = {
-      available: availableDates,
-    };
-    return modifiers;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -182,7 +175,6 @@ const BookAppointment = () => {
       setIsLoading(false);
     }
   };
-
   const filteredSlots = availableTimeSlots.filter((slot) => {
     const hour = parseInt(slot.time.split(":")[0], 10);
     if (selectedPeriod === "morning") {
@@ -234,13 +226,11 @@ const BookAppointment = () => {
                 disabled={(date) =>
                   date < getMinDate() || date > getMaxDate() || !isDateAvailable(date)
                 }
-                modifiers={getDateModifiers()}
                 className="mx-auto"
                 locale={es}
                 modifiersClassNames={{
                   selected: "bg-primary text-primary-foreground",
                   disabled: "opacity-50 cursor-not-allowed",
-                  available: "bg-[#F2FCE2]",
                 }}
                 weekStartsOn={1}
               />
