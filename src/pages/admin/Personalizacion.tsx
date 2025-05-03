@@ -232,7 +232,7 @@ const Personalizacion = () => {
                       <FormItem>
                         <FormLabel>Color del Nombre del Negocio</FormLabel>
                         <FormControl>
-                          <input type="color" {...field} className="w-12 h-10 cursor-pointer" />
+                          <input type="color" {...field} value={field.value || "#000000"} onChange={(e) => field.onChange(e.target.value)} className="w-12 h-10 cursor-pointer" />
                         </FormControl>
                         <FormDescription>Color del texto para el nombre del negocio.</FormDescription>
                         <FormMessage />
@@ -247,7 +247,7 @@ const Personalizacion = () => {
                       <FormItem>
                         <FormLabel>Color del Título de Bienvenida</FormLabel>
                         <FormControl>
-                          <input type="color" {...field} className="w-12 h-10 cursor-pointer" />
+                          <input type="color" {...field} value={field.value || "#000000"} onChange={(e) => field.onChange(e.target.value)} className="w-12 h-10 cursor-pointer" />
                         </FormControl>
                         <FormDescription>Color del texto para el título de bienvenida.</FormDescription>
                         <FormMessage />
@@ -262,7 +262,7 @@ const Personalizacion = () => {
                       <FormItem>
                         <FormLabel>Color del Subtítulo de Bienvenida</FormLabel>
                         <FormControl>
-                          <input type="color" {...field} className="w-12 h-10 cursor-pointer" />
+                          <input type="color" {...field} value={field.value || "#000000"} onChange={(e) => field.onChange(e.target.value)} className="w-12 h-10 cursor-pointer" />
                         </FormControl>
                         <FormDescription>Color del subtítulo debajo del título principal.</FormDescription>
                         <FormMessage />
@@ -277,7 +277,7 @@ const Personalizacion = () => {
                       <FormItem>
                         <FormLabel>Color de las Instrucciones de Reserva</FormLabel>
                         <FormControl>
-                          <input type="color" {...field} className="w-12 h-10 cursor-pointer" />
+                          <input type="color" {...field} value={field.value || "#000000"} onChange={(e) => field.onChange(e.target.value)} className="w-12 h-10 cursor-pointer" />
                         </FormControl>
                         <FormDescription>Color del texto para las instrucciones del proceso de reserva.</FormDescription>
                         <FormMessage />
