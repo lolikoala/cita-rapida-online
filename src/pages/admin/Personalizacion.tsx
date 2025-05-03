@@ -19,7 +19,11 @@ const defaultSettings: Partial<CustomizationSettings> = {
   welcome_subtitle: "Selecciona el servicio que necesitas, elige una fecha y hora disponible, y reserva tu cita de forma rápida y sencilla.",
   booking_instructions: "Para reservar, selecciona un servicio, fecha y hora disponible.",
   hero_image_url: "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=2684&auto=format&fit=crop",
-  primary_color: "#9b87f5"
+  primary_color: "#9b87f5",
+  business_name_color: "#000000",
+  welcome_title_color: "#000000",
+  welcome_subtitle_color: "#000000",
+  booking_instructions_color: "#000000"
 };
 
 const Personalizacion = () => {
@@ -220,7 +224,67 @@ const Personalizacion = () => {
                       </FormItem>
                     )}
                   />
-                </CardContent>
+                
+                  <FormField
+                    control={form.control}
+                    name="business_name_color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Color del Nombre del Negocio</FormLabel>
+                        <FormControl>
+                          <input type="color" {...field} className="w-12 h-10 cursor-pointer" />
+                        </FormControl>
+                        <FormDescription>Color del texto para el nombre del negocio.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="welcome_title_color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Color del Título de Bienvenida</FormLabel>
+                        <FormControl>
+                          <input type="color" {...field} className="w-12 h-10 cursor-pointer" />
+                        </FormControl>
+                        <FormDescription>Color del texto para el título de bienvenida.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="welcome_subtitle_color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Color del Subtítulo de Bienvenida</FormLabel>
+                        <FormControl>
+                          <input type="color" {...field} className="w-12 h-10 cursor-pointer" />
+                        </FormControl>
+                        <FormDescription>Color del subtítulo debajo del título principal.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="booking_instructions_color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Color de las Instrucciones de Reserva</FormLabel>
+                        <FormControl>
+                          <input type="color" {...field} className="w-12 h-10 cursor-pointer" />
+                        </FormControl>
+                        <FormDescription>Color del texto para las instrucciones del proceso de reserva.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+</CardContent>
               </Card>
             </TabsContent>
 
@@ -305,12 +369,12 @@ const Personalizacion = () => {
                       style={{ backgroundImage: `url(${form.watch("hero_image_url") || defaultSettings.hero_image_url})` }}
                     >
                       <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white p-4 text-center">
-                        <h1 className="text-2xl font-bold mb-2">{form.watch("business_name") || defaultSettings.business_name}</h1>
-                        <h2 className="text-xl font-semibold">{form.watch("welcome_title") || defaultSettings.welcome_title}</h2>
+                        <h1 className="text-2xl font-bold mb-2" style={{ color: form.watch("business_name_color") || "#000000" }}>{form.watch("business_name") || defaultSettings.business_name}</h1>
+                        <h2 className="text-xl font-semibold" style={{ color: form.watch("welcome_title_color") || "#000000" }}>{form.watch("welcome_title") || defaultSettings.welcome_title}</h2>
                       </div>
                     </div>
                     <div className="p-6">
-                      <p className="text-muted-foreground mb-4">
+                      <p className="text-muted-foreground mb-4" style={{ color: form.watch("welcome_subtitle_color") || "#000000" }}>
                         {form.watch("welcome_subtitle") || defaultSettings.welcome_subtitle}
                       </p>
                       <Separator className="my-4" />
@@ -326,7 +390,7 @@ const Personalizacion = () => {
                       </div>
                       <div className="mt-6 p-4 bg-muted rounded-md">
                         <h3 className="font-medium mb-2">Instrucciones:</h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground" style={{ color: form.watch("booking_instructions_color") || "#000000" }}>
                           {form.watch("booking_instructions") || defaultSettings.booking_instructions}
                         </p>
                       </div>
