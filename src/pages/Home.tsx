@@ -80,8 +80,8 @@ const Home = () => {
           }}
         ></div>
         <div className="text-center py-12 relative z-10">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-4">{welcomeTitle}</h1>
-          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-4" style={{ color: customization?.welcome_title_color || "#000000" }}>{welcomeTitle}</h1>
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto mb-8" style={{ color: customization?.welcome_subtitle_color || "#000000" }}>
             {welcomeSubtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -113,7 +113,7 @@ const Home = () => {
       </section>
 
       <section>
-        <h2 className="text-2xl font-bold mb-6 text-center">Nuestros Servicios</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: customization?.business_name_color || "#000000" }}>{businessName}</h2>
         {isLoading ? (
           <div className="text-center">Cargando servicios...</div>
         ) : (
